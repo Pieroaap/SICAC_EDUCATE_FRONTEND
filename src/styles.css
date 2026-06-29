@@ -463,13 +463,17 @@ button:disabled { cursor: default; }
   background: var(--control);
 }
 .data-table-wrap {
-  overflow-x: auto;
+  max-height: min(62vh, 760px);
+  overflow: auto;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--surface);
 }
 .data-table { width: 100%; border-collapse: collapse; min-width: 880px; }
 .data-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   height: 44px;
   padding: 0 1rem;
   color: var(--ink-muted);
@@ -634,9 +638,11 @@ button:disabled { cursor: default; }
 }
 .person-summary-card--hero strong {
   color: white;
-  font-size: 1.8rem;
-  font-variant-numeric: tabular-nums;
+  font-size: clamp(1.45rem, 2.3vw, 1.9rem);
 }
+.person-summary-card--hero dl { display: none; }
+.person-summary-card--data > strong,
+.person-summary-card--data > span { display: none; }
 .person-summary-card > span,
 .person-summary-note {
   color: var(--ink-secondary);
@@ -659,9 +665,11 @@ button:disabled { cursor: default; }
 }
 .person-summary-card dd {
   margin: 0;
-  color: white;
+  color: var(--ink);
   font-size: 0.84rem;
+  font-weight: 650;
 }
+.person-summary-card--hero dd { color: white; }
 .entity-form { display: grid; gap: 1rem; }
 .entity-form > section {
   display: grid;

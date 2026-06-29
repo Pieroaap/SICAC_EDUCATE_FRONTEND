@@ -144,8 +144,8 @@ export function PersonDetailPage() {
       <section className="person-summary-grid" aria-label="Resumen de la persona">
         <article className="person-summary-card person-summary-card--hero">
           <p className="eyebrow">Ficha</p>
-          <strong>{person.numeroDocumento}</strong>
-          <span>{person.tipoDocumento.replaceAll('_', ' ')}</span>
+          <strong>{personName}</strong>
+          <span>{person.estado === 'activo' ? 'Registro activo' : 'Registro inactivo'}</span>
           <dl>
             <div>
               <dt>Correo</dt>
@@ -158,8 +158,26 @@ export function PersonDetailPage() {
           </dl>
         </article>
 
-        <article className="person-summary-card">
-          <p className="eyebrow">Acceso</p>
+        <article className="person-summary-card person-summary-card--data">
+          <p className="eyebrow">Datos</p>
+          <dl>
+            <div>
+              <dt>{person.tipoDocumento.replaceAll('_', ' ')}</dt>
+              <dd>{person.numeroDocumento}</dd>
+            </div>
+            <div>
+              <dt>Correo</dt>
+              <dd>{person.correo ?? 'Sin correo registrado'}</dd>
+            </div>
+            <div>
+              <dt>Teléfono</dt>
+              <dd>{person.telefono ?? 'Sin teléfono registrado'}</dd>
+            </div>
+            <div>
+              <dt>Acceso</dt>
+              <dd>{person.tieneAcceso ? 'Cuenta habilitada' : 'Sin acceso al sistema'}</dd>
+            </div>
+          </dl>
           <strong>{person.tieneAcceso ? 'Cuenta habilitada' : 'Sin acceso al sistema'}</strong>
           <span>
             {person.tieneAcceso
