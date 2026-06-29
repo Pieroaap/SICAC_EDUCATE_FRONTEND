@@ -1,24 +1,21 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { LoaderCircle, Save } from 'lucide-react';
 import { useState } from 'react';
-import type { PersonDetail, RoleCode, StudentState } from '../../../api/types';
+import type { PersonDetail, RoleCode } from '../../../api/types';
 import { getApiErrorMessage } from '../../../api/client';
+import { FormField } from '../../../components/FormField';
 import { Button } from '../../../components/ui/Button';
+import { Input } from '../../../components/ui/Input';
 import { cn } from '../../../lib/cn';
 import { updateStudentProfile } from '../api/peopleApi';
 import { canUpdateStudentProfile } from '../personActions';
-
-const studentStateOptions: Array<{ value: StudentState; label: string; description: string }> = [
-  { value: 'activo', label: 'Activo', description: 'Continúa operativo para la gestión académica.' },
-  { value: 'en_pausa', label: 'En pausa', description: 'Suspensión temporal sin cerrar la identidad.' },
-  { value: 'retirado', label: 'Retirado', description: 'No continúa actualmente como alumno.' },
-  { value: 'sin_contestar', label: 'Sin contestar', description: 'Pendiente de confirmación o contacto.' },
-  { value: 'graduado', label: 'Graduado', description: 'Culminó su trayectoria como alumno.' },
-];
-
-function humanize(value: string) {
-  return value.replaceAll('_', ' ');
-}
+import { toStudentProfilePayload, type StudentProfileValues } from '../personForm';
+import {
+  benefitOptions,
+  benefitTypeOptions,
+  humanizeStudentValue,
+  studentStateOptions,
+} from '../studentProfileOptions';
 
 type Props = {
   actorRoles: RoleCode[];
@@ -26,29 +23,62 @@ type Props = {
   person: PersonDetail;
 };
 
+function profileToValues(profile: NonNullable<PersonDetail['alumnoPerfil']>): StudentProfileValues {
+  return {
+    estado: profile.estado,
+    anioIngreso: profile.anioIngreso,
+    periodoIngreso: profile.periodoIngreso,
+    beneficio: profile.beneficio,
+    tipoBeneficio: profile.tipoBeneficio,
+  };
+}
+
 export function PersonStudentProfilePanel({ actorRoles, onFeedback, person }: Props) {
   const queryClient = useQueryClient();
   const profile = person.alumnoPerfil;
-  const sourceEstado = profile?.estado ?? 'activo';
+  const sourceKey = profile
+    ? [
+      person.id,
+      profile.estado,
+      profile.anioIngreso,
+      profile.periodoIngreso,
+      profile.beneficio,
+      profile.tipoBeneficio,
+    ].join('|')
+    : person.id;
   const [draft, setDraft] = useState<{
-    estado: StudentState;
+    values: StudentProfileValues | null;
     personId: string;
-    sourceEstado: StudentState;
+    sourceKey: string;
   }>({
-    estado: sourceEstado,
+    values: profile ? profileToValues(profile) : null,
     personId: person.id,
-    sourceEstado,
+    sourceKey,
   });
   const canEdit = canUpdateStudentProfile(actorRoles);
-  const draftIsCurrent = draft.personId === person.id && draft.sourceEstado === sourceEstado;
-  const estado = draftIsCurrent ? draft.estado : sourceEstado;
-  const hasChanged = profile ? estado !== sourceEstado : false;
-  const selectedState = studentStateOptions.find((option) => option.value === estado);
+  const draftIsCurrent = draft.personId === person.id && draft.sourceKey === sourceKey;
+  const editableProfile = draftIsCurrent ? draft.values : profile ? profileToValues(profile) : null;
+  const sourceProfile = profile ? profileToValues(profile) : null;
+  const hasChanged = Boolean(
+    sourceProfile
+      && editableProfile
+      && JSON.stringify(toStudentProfilePayload(editableProfile)) !== JSON.stringify(sourceProfile),
+  );
+  const selectedState = studentStateOptions.find((option) => option.value === editableProfile?.estado);
+
+  const updateDraft = <Key extends keyof StudentProfileValues>(key: Key, value: StudentProfileValues[Key]) => {
+    if (!editableProfile) return;
+    setDraft({
+      values: { ...editableProfile, [key]: value },
+      personId: person.id,
+      sourceKey,
+    });
+  };
 
   const updateMutation = useMutation({
-    mutationFn: () => updateStudentProfile(person.id, { estado }),
+    mutationFn: () => updateStudentProfile(person.id, toStudentProfilePayload(editableProfile!)),
     onSuccess: async () => {
-      onFeedback({ type: 'success', message: 'Estado operativo del alumno actualizado correctamente.' });
+      onFeedback({ type: 'success', message: 'Perfil de alumno actualizado correctamente.' });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['person', person.id] }),
         queryClient.invalidateQueries({ queryKey: ['students'] }),
@@ -57,7 +87,7 @@ export function PersonStudentProfilePanel({ actorRoles, onFeedback, person }: Pr
     onError: (error) => {
       onFeedback({
         type: 'error',
-        message: getApiErrorMessage(error, 'No pudimos actualizar el estado del alumno.'),
+        message: getApiErrorMessage(error, 'No pudimos actualizar el perfil del alumno.'),
       });
     },
   });
@@ -76,10 +106,11 @@ export function PersonStudentProfilePanel({ actorRoles, onFeedback, person }: Pr
       <div className="student-profile-panel__heading">
         <div>
           <h3>Perfil de alumno</h3>
-          <p>Este estado no inactiva la persona ni sus otros roles.</p>
+          <p>Estos datos son propios del alumno; no inactivan la persona ni sus otros roles.</p>
         </div>
         <span className={cn('profile-state', `is-${profile.estado}`)}>
-          {studentStateOptions.find((option) => option.value === profile.estado)?.label ?? humanize(profile.estado)}
+          {studentStateOptions.find((option) => option.value === profile.estado)?.label
+            ?? humanizeStudentValue(profile.estado)}
         </span>
       </div>
 
@@ -90,36 +121,80 @@ export function PersonStudentProfilePanel({ actorRoles, onFeedback, person }: Pr
         </div>
         <div>
           <dt>Beneficio</dt>
-          <dd>{humanize(profile.beneficio)} · {humanize(profile.tipoBeneficio)}</dd>
+          <dd>{humanizeStudentValue(profile.beneficio)} · {humanizeStudentValue(profile.tipoBeneficio)}</dd>
         </div>
       </dl>
 
-      <label className="select-filter action-panel__select">
-        <span>Estado operativo</span>
-        <select
-          disabled={!canEdit || updateMutation.isPending}
-          onChange={(event) => setDraft({
-            estado: event.target.value as StudentState,
-            personId: person.id,
-            sourceEstado,
-          })}
-          value={estado}
-        >
-          {studentStateOptions.map((option) => (
-            <option key={option.value} value={option.value}>{option.label}</option>
-          ))}
-        </select>
-      </label>
+      <div className="student-profile-edit-grid">
+        <FormField htmlFor="studentEstado" label="Estado operativo">
+          <select
+            className="form-select"
+            disabled={!canEdit || updateMutation.isPending}
+            id="studentEstado"
+            onChange={(event) => updateDraft('estado', event.target.value as StudentProfileValues['estado'])}
+            value={editableProfile?.estado}
+          >
+            {studentStateOptions.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </FormField>
+        <FormField htmlFor="studentAnioIngreso" label="Año de ingreso">
+          <Input
+            disabled={!canEdit || updateMutation.isPending}
+            id="studentAnioIngreso"
+            inputMode="numeric"
+            onChange={(event) => updateDraft('anioIngreso', Number(event.target.value))}
+            type="number"
+            value={editableProfile?.anioIngreso ?? ''}
+          />
+        </FormField>
+        <FormField htmlFor="studentPeriodoIngreso" label="Periodo de ingreso">
+          <Input
+            disabled={!canEdit || updateMutation.isPending}
+            id="studentPeriodoIngreso"
+            onChange={(event) => updateDraft('periodoIngreso', event.target.value)}
+            placeholder="2026-I"
+            value={editableProfile?.periodoIngreso ?? ''}
+          />
+        </FormField>
+        <FormField htmlFor="studentBeneficio" label="Beneficio">
+          <select
+            className="form-select"
+            disabled={!canEdit || updateMutation.isPending}
+            id="studentBeneficio"
+            onChange={(event) => updateDraft('beneficio', event.target.value as StudentProfileValues['beneficio'])}
+            value={editableProfile?.beneficio}
+          >
+            {benefitOptions.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </FormField>
+        <FormField htmlFor="studentTipoBeneficio" label="Tipo de beneficio">
+          <select
+            className="form-select"
+            disabled={!canEdit || updateMutation.isPending}
+            id="studentTipoBeneficio"
+            onChange={(event) => updateDraft('tipoBeneficio', event.target.value as StudentProfileValues['tipoBeneficio'])}
+            value={editableProfile?.tipoBeneficio}
+          >
+            {benefitTypeOptions.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </FormField>
+      </div>
       <p>{selectedState?.description}</p>
 
       <Button
-        disabled={!canEdit || !hasChanged || updateMutation.isPending}
+        disabled={!canEdit || !hasChanged || !editableProfile || updateMutation.isPending}
         onClick={() => updateMutation.mutate()}
         type="button"
         variant="secondary"
       >
         {updateMutation.isPending ? <LoaderCircle className="animate-spin" size={17} /> : <Save size={17} />}
-        Guardar estado de alumno
+        Guardar perfil de alumno
       </Button>
 
       {!canEdit ? <small>No tienes permisos para modificar el perfil de alumno.</small> : null}

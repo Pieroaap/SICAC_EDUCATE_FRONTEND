@@ -689,6 +689,49 @@ button:disabled { cursor: default; }
 .entity-form h2 { margin: 0; font-size: 1rem; letter-spacing: -0.025em; }
 .entity-form header p { margin: 0.35rem 0 0; color: var(--ink-muted); font-size: 0.75rem; line-height: 1.5; }
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.1rem; }
+.role-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+.role-choice {
+  position: relative;
+  min-height: 106px;
+  display: grid;
+  gap: 0.35rem;
+  align-content: start;
+  padding: 0.9rem 0.9rem 0.9rem 2.45rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--canvas) 38%, var(--surface));
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease, transform 120ms ease;
+}
+.role-choice:hover {
+  border-color: rgba(196, 30, 58, 0.22);
+  background: rgba(196, 30, 58, 0.04);
+}
+.role-choice:active { transform: scale(0.99); }
+.role-choice:has(input:checked) {
+  border-color: rgba(196, 30, 58, 0.42);
+  background: rgba(196, 30, 58, 0.07);
+}
+.role-choice input {
+  position: absolute;
+  top: 0.95rem;
+  left: 0.9rem;
+  accent-color: #c41e3a;
+}
+.role-choice strong {
+  color: var(--ink);
+  font-size: 0.88rem;
+  letter-spacing: -0.015em;
+}
+.role-choice span {
+  color: var(--ink-muted);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
 .form-select {
   min-height: 48px;
   width: 100%;
@@ -809,6 +852,41 @@ button:disabled { cursor: default; }
   font-size: 0.8rem;
   font-weight: 650;
   text-transform: capitalize;
+}
+.student-profile-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+  padding-top: 0.2rem;
+}
+.guardian-create-block {
+  display: grid;
+  gap: 0.9rem;
+}
+.inline-check {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--canvas) 42%, var(--surface));
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.inline-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: #c41e3a;
+}
+.guardian-create-form {
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--canvas) 38%, var(--surface));
 }
 .guardian-form {
   display: grid;
@@ -996,8 +1074,10 @@ button:disabled { cursor: default; }
   .search-box > button { width: 100%; }
   .pagination { align-items: flex-start; }
   .form-grid { grid-template-columns: 1fr; }
+  .role-choice-grid { grid-template-columns: 1fr; }
   .student-profile-panel__heading { flex-direction: column; }
   .student-profile-facts { grid-template-columns: 1fr; }
+  .student-profile-edit-grid { grid-template-columns: 1fr; }
   .guardian-form__row { grid-template-columns: 1fr; }
   .form-actions--split,
   .form-actions__primary { flex-direction: column; }

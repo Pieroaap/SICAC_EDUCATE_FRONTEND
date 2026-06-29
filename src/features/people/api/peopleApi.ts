@@ -6,6 +6,7 @@ import type {
   RoleCode,
   StudentState,
 } from '../../../api/types';
+import type { InitialPersonRole, StudentProfileValues } from '../personForm';
 
 export type PeopleFilters = {
   search?: string;
@@ -26,7 +27,7 @@ export async function getPersonDetail(personId: string) {
   return data;
 }
 
-export type CreatePersonInput = {
+export type PersonPayloadBase = {
   tipoDocumento: 'dni' | 'pasaporte' | 'carnet_extranjeria' | 'otro';
   numeroDocumento: string;
   nombres: string;
@@ -37,12 +38,23 @@ export type CreatePersonInput = {
   fechaNacimiento?: string;
 };
 
+export type CreateGuardianPersonInput = PersonPayloadBase & {
+  tipoRelacion: string;
+  fechaInicio?: string;
+};
+
+export type CreatePersonInput = PersonPayloadBase & {
+  initialRole: InitialPersonRole;
+  alumnoPerfil?: StudentProfileValues;
+  tutor?: CreateGuardianPersonInput;
+};
+
 export async function createPerson(input: CreatePersonInput) {
   const { data } = await api.post('/personas', input);
   return data;
 }
 
-export type UpdatePersonInput = Partial<CreatePersonInput> & {
+export type UpdatePersonInput = Partial<PersonPayloadBase> & {
   estado?: 'activo' | 'inactivo';
 };
 
@@ -75,7 +87,16 @@ export async function assignStudentGuardian(studentId: string, input: AssignGuar
   return data;
 }
 
-export async function updateStudentProfile(personId: string, input: { estado: StudentState }) {
+export async function updateStudentProfile(
+  personId: string,
+  input: Partial<{
+    estado: StudentState;
+    anioIngreso: number;
+    periodoIngreso: string;
+    beneficio: 'becado' | 'credito' | 'becado_credito' | 'normal';
+    tipoBeneficio: 'regular' | 'media_beca' | 'tercio_beca' | 'especial' | 'beca_completa';
+  }>,
+) {
   const { data } = await api.patch(`/alumnos/${personId}`, input);
   return data;
 }

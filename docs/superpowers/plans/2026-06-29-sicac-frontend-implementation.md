@@ -8,6 +8,8 @@
 
 - Cortes 0A, 0B y 0C: completados.
 - Corte 1 — Personas: listado, alta, edición, inactivación y detalle completados.
+- Corte 1 — Personas contextual: alta con rol inicial, creación de alumno con
+  perfil académico editable y tutor inicial sin rol completados.
 - Corte 1 — Alumnos y profesores: listados operativos con búsqueda, estado,
   paginación y acceso a ficha completados.
 - Corte 1 — Tutores y acceso: acciones contextuales en ficha de persona,

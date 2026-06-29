@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { emptyPersonValues, toPersonFormValues, toPersonPayload } from './personForm';
+import {
+  emptyCreatePersonValues,
+  emptyPersonValues,
+  toCreatePersonPayload,
+  toPersonFormValues,
+  toPersonPayload,
+} from './personForm';
 
 describe('personForm helpers', () => {
   it('drops empty optional values before sending them to the API', () => {
@@ -34,6 +40,38 @@ describe('personForm helpers', () => {
       correo: '',
       telefono: '',
       fechaNacimiento: '',
+    });
+  });
+
+  it('includes student profile and omits disabled tutor on create', () => {
+    expect(toCreatePersonPayload(emptyCreatePersonValues)).toMatchObject({
+      initialRole: 'ALUMNO',
+      alumnoPerfil: {
+        estado: 'activo',
+        beneficio: 'normal',
+        tipoBeneficio: 'regular',
+      },
+      tutor: undefined,
+    });
+  });
+
+  it('includes tutor data only when requested for student creation', () => {
+    const payload = toCreatePersonPayload({
+      ...emptyCreatePersonValues,
+      includeTutor: true,
+      tutor: {
+        ...emptyPersonValues,
+        numeroDocumento: '87654321',
+        nombres: 'Tutor',
+        apellidoPaterno: 'Principal',
+        tipoRelacion: 'Madre',
+        fechaInicio: '2026-01-01',
+      },
+    });
+    expect(payload.tutor).toMatchObject({
+      numeroDocumento: '87654321',
+      tipoRelacion: 'Madre',
+      fechaInicio: '2026-01-01',
     });
   });
 });
