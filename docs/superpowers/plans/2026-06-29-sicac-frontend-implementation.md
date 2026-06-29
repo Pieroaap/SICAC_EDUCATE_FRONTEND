@@ -9,13 +9,14 @@
 - Cortes 0A, 0B y 0C: completados.
 - Corte 1 — Personas: listado, alta, edición, inactivación y detalle completados.
 - Corte 1 — Personas contextual: alta con rol inicial, creación de alumno con
-  perfil académico editable y tutor inicial sin rol completados.
+  perfil académico editable, tutor inicial sin rol y acceso directo "Crear
+  alumno" completados.
 - Corte 1 — Alumnos y profesores: listados operativos con búsqueda, estado,
   paginación y acceso a ficha completados.
 - Corte 1 — Tutores y acceso: acciones contextuales en ficha de persona,
   habilitación de acceso, reinicio de clave y asignación de tutores completados.
-- Pendiente posterior del Corte 1: importaciones con dry run, resumen y
-  confirmación.
+- Pendiente diferido por decisión funcional: importaciones con dry run, resumen
+  y confirmación. Se retomará cuando sea necesario o al cierre.
 
 ## Reglas de ejecución
 

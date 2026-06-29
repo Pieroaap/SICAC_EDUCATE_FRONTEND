@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, LoaderCircle } from 'lucide-react';
 import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { getApiErrorMessage } from '../../../api/client';
 import { FormField } from '../../../components/FormField';
 import { Button } from '../../../components/ui/Button';
@@ -42,6 +42,11 @@ function fieldError(error: unknown) {
 export function PersonCreatePage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialRoleParam = searchParams.get('rol');
+  const defaultInitialRole = roleOptions.some((role) => role.value === initialRoleParam)
+    ? initialRoleParam as CreatePersonValues['initialRole']
+    : emptyCreatePersonValues.initialRole;
   const [submitError, setSubmitError] = useState<string | null>(null);
   const {
     register,
@@ -51,7 +56,10 @@ export function PersonCreatePage() {
     formState: { errors },
   } = useForm<CreatePersonFormInput, unknown, CreatePersonValues>({
     resolver: zodResolver(createPersonSchema),
-    defaultValues: emptyCreatePersonValues,
+    defaultValues: {
+      ...emptyCreatePersonValues,
+      initialRole: defaultInitialRole,
+    },
   });
   const initialRole = useWatch({ control, name: 'initialRole' });
   const includeTutor = useWatch({ control, name: 'includeTutor' });
@@ -87,8 +95,12 @@ export function PersonCreatePage() {
       <header className="page-heading">
         <div>
           <p className="eyebrow">Identidad</p>
-          <h1>Nueva persona</h1>
-          <p>Crea una identidad con rol inicial. Los tutores pueden existir sin rol de sistema.</p>
+          <h1>{defaultInitialRole === 'ALUMNO' ? 'Crear alumno' : 'Nueva persona'}</h1>
+          <p>
+            {defaultInitialRole === 'ALUMNO'
+              ? 'Crea la identidad del alumno, su perfil académico editable y, si corresponde, su tutor inicial.'
+              : 'Crea una identidad con rol inicial. Los tutores pueden existir sin rol de sistema.'}
+          </p>
         </div>
       </header>
 

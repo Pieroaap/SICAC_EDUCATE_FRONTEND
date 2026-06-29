@@ -65,7 +65,12 @@ export function PeopleListPage() {
           <h1>Personas</h1>
           <p>Identidades, roles y accesos del sistema en un solo lugar.</p>
         </div>
-        <Button asChild><Link to="/personas/nueva">Nueva persona</Link></Button>
+        <div className="page-heading__actions">
+          <Button asChild variant="secondary">
+            <Link to="/personas/nueva?rol=ALUMNO">Crear alumno</Link>
+          </Button>
+          <Button asChild><Link to="/personas/nueva">Nueva persona</Link></Button>
+        </div>
       </header>
 
       {typeof location.state === 'object'

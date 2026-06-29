@@ -69,6 +69,9 @@ export function StudentsListPage() {
           <h1>Alumnos</h1>
           <p>Situación académica, ingreso, beneficio y acceso de cada alumno.</p>
         </div>
+        <Button asChild>
+          <Link to="/personas/nueva?rol=ALUMNO">Crear alumno</Link>
+        </Button>
       </header>
 
       <DirectoryToolbar
