@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, Search, UsersRound } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, SquarePen, UsersRound } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { StatusBadge } from '../../../components/StatusBadge';
@@ -100,13 +100,13 @@ export function PeopleListPage() {
         </label>
       </section>
 
-      {people.isPending || !result ? (
-        <section className="table-state">Cargando personas…</section>
-      ) : people.isError ? (
+      {people.isError ? (
         <section className="table-state is-error">
           <p>No pudimos cargar las personas.</p>
           <button onClick={() => void people.refetch()} type="button">Reintentar</button>
         </section>
+      ) : people.isPending || !result ? (
+        <section className="table-state">Cargando personas…</section>
       ) : result.data.length === 0 ? (
         <section className="table-state">
           <UsersRound size={30} />
@@ -135,6 +135,7 @@ export function PeopleListPage() {
                   <th>Roles</th>
                   <th>Acceso</th>
                   <th>Estado</th>
+                  <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -159,6 +160,14 @@ export function PeopleListPage() {
                     </td>
                     <td>{person.tieneAcceso ? 'Habilitado' : 'Sin acceso'}</td>
                     <td><StatusBadge active={person.estado === 'activo'} /></td>
+                    <td className="table-actions">
+                      <Button asChild className="table-action-button" variant="ghost">
+                        <Link to={`/personas/${person.id}`}>
+                          <SquarePen size={15} />
+                          Editar
+                        </Link>
+                      </Button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

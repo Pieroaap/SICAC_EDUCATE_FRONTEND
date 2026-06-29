@@ -15,6 +15,12 @@ const PeopleListPage = lazy(() => import('../features/people/components/PeopleLi
   .then((module) => ({ default: module.PeopleListPage })));
 const PersonCreatePage = lazy(() => import('../features/people/components/PersonCreatePage')
   .then((module) => ({ default: module.PersonCreatePage })));
+const PersonDetailPage = lazy(() => import('../features/people/components/PersonDetailPage')
+  .then((module) => ({ default: module.PersonDetailPage })));
+const StudentsListPage = lazy(() => import('../features/profiles/components/StudentsListPage')
+  .then((module) => ({ default: module.StudentsListPage })));
+const TeachersListPage = lazy(() => import('../features/profiles/components/TeachersListPage')
+  .then((module) => ({ default: module.TeachersListPage })));
 
 export function App() {
   return (
@@ -52,6 +58,30 @@ export function App() {
               </RequireRole>
             )}
             path="personas/nueva"
+          />
+          <Route
+            element={(
+              <RequireRole allowed={['ADMINISTRADOR_SISTEMA', 'DIRECTOR_ACADEMICO', 'GESTOR_ACADEMICO']}>
+                <PersonDetailPage />
+              </RequireRole>
+            )}
+            path="personas/:personId"
+          />
+          <Route
+            element={(
+              <RequireRole allowed={['ADMINISTRADOR_SISTEMA', 'DIRECTOR_ACADEMICO', 'GESTOR_ACADEMICO']}>
+                <StudentsListPage />
+              </RequireRole>
+            )}
+            path="alumnos"
+          />
+          <Route
+            element={(
+              <RequireRole allowed={['ADMINISTRADOR_SISTEMA', 'DIRECTOR_ACADEMICO', 'GESTOR_ACADEMICO']}>
+                <TeachersListPage />
+              </RequireRole>
+            )}
+            path="profesores"
           />
           <Route element={<ForbiddenPage />} path="sin-permiso" />
         </Route>

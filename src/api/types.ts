@@ -72,6 +72,29 @@ export type PersonListItem = {
   }>;
 };
 
+export type PersonDetail = Omit<PersonListItem, 'roles'> & {
+  fechaNacimiento: string | null;
+  roles: Array<{
+    codigo: RoleCode;
+    nombre: string;
+    estado: 'activo' | 'inactivo';
+    fechaInicio: string;
+    fechaFin: string | null;
+  }>;
+  tutores: Array<{
+    id: string;
+    tutorPersonaId: string;
+    tutorDocumento: string;
+    tutorNombres: string;
+    tutorApellidoPaterno: string;
+    tutorApellidoMaterno: string | null;
+    tipoRelacion: string;
+    estado: 'activo' | 'inactivo';
+    fechaInicio: string;
+    fechaFin: string | null;
+  }>;
+};
+
 export type PaginatedResponse<T> = {
   data: T[];
   pagination: {
@@ -80,4 +103,38 @@ export type PaginatedResponse<T> = {
     total: number;
     totalPages: number;
   };
+};
+
+export type StudentState =
+  | 'activo'
+  | 'en_pausa'
+  | 'retirado'
+  | 'sin_contestar'
+  | 'graduado';
+
+export type StudentListItem = {
+  id: string;
+  apellidos: string;
+  nombres: string;
+  telefono: string | null;
+  dni: string;
+  estado: StudentState;
+  anioIngreso: number;
+  periodoIngreso: string;
+  beneficio: 'becado' | 'credito' | 'becado_credito' | 'normal';
+  tipoBeneficio: 'regular' | 'media_beca' | 'tercio_beca' | 'especial' | 'beca_completa';
+  tieneAcceso: boolean;
+  carrera: string | null;
+  plan: string | null;
+};
+
+export type TeacherListItem = {
+  id: string;
+  nombres: string;
+  apellidoPaterno: string;
+  apellidoMaterno: string | null;
+  dni: string;
+  correo: string | null;
+  estado: 'activo' | 'inactivo';
+  tieneAcceso: boolean;
 };

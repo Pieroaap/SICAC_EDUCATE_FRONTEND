@@ -2,10 +2,10 @@ import { LogOut, Menu, Moon, Sun, X } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import logoWhite from '../assets/brand/logo-white.png';
+import { getNavigationGroups } from '../app/navigation';
 import { useTheme } from '../app/ThemeProvider';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../features/auth/AuthProvider';
-import { canAccessPeople } from '../features/people/permissions';
 import { cn } from '../lib/cn';
 
 export function MainLayout() {
@@ -13,6 +13,7 @@ export function MainLayout() {
   const { theme, toggleTheme } = useTheme();
   const { profile, logout } = useAuth();
   const roleCodes = profile?.roles.map((role) => role.codigo) ?? [];
+  const navigationGroups = getNavigationGroups(roleCodes);
 
   return (
     <div className="workspace">
@@ -36,23 +37,22 @@ export function MainLayout() {
         </div>
 
         <nav aria-label="Navegación principal" className="sidebar__nav">
-          <p>Espacio de trabajo</p>
-          <NavLink
-            className={({ isActive }) => cn('sidebar__link', isActive && 'is-active')}
-            onClick={() => setMenuOpen(false)}
-            to="/"
-          >
-            Panel general
-          </NavLink>
-          {canAccessPeople(roleCodes) ? (
-            <NavLink
-              className={({ isActive }) => cn('sidebar__link', isActive && 'is-active')}
-              onClick={() => setMenuOpen(false)}
-              to="/personas"
-            >
-              Personas
-            </NavLink>
-          ) : null}
+          {navigationGroups.map((group) => (
+            <div className="sidebar__group" key={group.label}>
+              <p>{group.label}</p>
+              {group.items.map((item) => (
+                <NavLink
+                  className={({ isActive }) => cn('sidebar__link', isActive && 'is-active')}
+                  end={item.to === '/'}
+                  key={item.to}
+                  onClick={() => setMenuOpen(false)}
+                  to={item.to}
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </div>
+          ))}
         </nav>
 
         <div className="sidebar__profile">
