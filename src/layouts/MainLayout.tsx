@@ -5,12 +5,14 @@ import logoWhite from '../assets/brand/logo-white.png';
 import { useTheme } from '../app/ThemeProvider';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../features/auth/AuthProvider';
+import { canAccessPeople } from '../features/people/permissions';
 import { cn } from '../lib/cn';
 
 export function MainLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { profile, logout } = useAuth();
+  const roleCodes = profile?.roles.map((role) => role.codigo) ?? [];
 
   return (
     <div className="workspace">
@@ -42,6 +44,15 @@ export function MainLayout() {
           >
             Panel general
           </NavLink>
+          {canAccessPeople(roleCodes) ? (
+            <NavLink
+              className={({ isActive }) => cn('sidebar__link', isActive && 'is-active')}
+              onClick={() => setMenuOpen(false)}
+              to="/personas"
+            >
+              Personas
+            </NavLink>
+          ) : null}
         </nav>
 
         <div className="sidebar__profile">

@@ -29,5 +29,10 @@ export function Button({
   ...props
 }: ButtonProps) {
   const Component = asChild ? Slot : 'button';
-  return <Component className={cn(buttonVariants({ variant }), className)} type={type} {...props} />;
+  return (
+    <Component
+      className={cn(buttonVariants({ variant }), className)}
+      {...(asChild ? props : { type, ...props })}
+    />
+  );
 }

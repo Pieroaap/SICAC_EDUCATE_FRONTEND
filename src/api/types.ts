@@ -53,3 +53,31 @@ export type DashboardResponse = {
     to: string;
   }>;
 };
+
+export type PersonListItem = {
+  id: string;
+  tipoDocumento: 'dni' | 'pasaporte' | 'carnet_extranjeria' | 'otro';
+  numeroDocumento: string;
+  nombres: string;
+  apellidoPaterno: string;
+  apellidoMaterno: string | null;
+  correo: string | null;
+  telefono: string | null;
+  estado: 'activo' | 'inactivo';
+  tieneAcceso: boolean;
+  roles: Array<{
+    codigo: RoleCode;
+    nombre: string;
+    estado: 'activo' | 'inactivo';
+  }>;
+};
+
+export type PaginatedResponse<T> = {
+  data: T[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+};
