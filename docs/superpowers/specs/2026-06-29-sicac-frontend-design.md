@@ -1,7 +1,7 @@
 # SICAC — Especificación de diseño del frontend
 
 **Fecha:** 2026-06-29  
-**Estado:** Aprobada en conversación; pendiente de revisión final del documento  
+**Estado:** Aprobada  
 **Ámbito:** Primera parte del frontend operativo para personal interno  
 **Fuentes:** `front_architecture.md`, `front_prompt.md` como referencia histórica, `BACKEND/docs/frontend-integration.md`, Swagger y código vigente del backend
 
@@ -284,7 +284,27 @@ acción principal, navegación activa, foco y alertas críticas.
 Los assets se moverán a la estructura definitiva del proyecto sin cambiar sus
 archivos originales.
 
-### 9.6 Tema y responsive
+### 9.6 Login
+
+En escritorio, el login utiliza una composición dividida:
+
+- panel izquierdo negro con `logo-white.png`, el mensaje «El escenario es tuyo.
+  Nosotros te acompañamos.» y el subtítulo «Sistema Integral del Club de Arte &
+  Cultura»;
+- panel derecho claro con el formulario de DNI y contraseña;
+- pie institucional discreto con el año actual.
+
+La referencia visual es la captura de la versión anterior proporcionada el
+2026-06-29. Se conserva su intención y mensaje, no una copia rígida de sus
+medidas. El nuevo formulario usa DNI en lugar de correo porque ese es el contrato
+vigente. En móvil, el panel oscuro se reduce a una cabecera de marca y el
+formulario ocupa la superficie principal.
+
+La recuperación autónoma de contraseña no se mostrará mientras el backend no
+publique un flujo seguro para ella. El cambio obligatorio de clave sí forma parte
+del alcance.
+
+### 9.7 Tema y responsive
 
 El tema inicial respeta `prefers-color-scheme`. El usuario puede alternarlo y su
 preferencia se persiste localmente. El sidebar permanece oscuro en ambos temas.
@@ -293,7 +313,7 @@ Se verifican 1440, 1024, 768 y 360 px. Las tablas extensas ofrecen scroll
 controlado, columnas prioritarias y una presentación móvil resumida cuando sea
 necesario. Nunca comprimen todas las columnas hasta volverlas ilegibles.
 
-### 9.7 Interacción y accesibilidad
+### 9.8 Interacción y accesibilidad
 
 - Áreas táctiles de al menos 44 px cuando el contexto lo permita.
 - Foco visible, navegación por teclado y etiquetas accesibles.
@@ -385,4 +405,3 @@ Swagger vigente prevalecen cuando exista una contradicción.
 Las decisiones reutilizables de diseño se registran también en
 `.interface-design/system.md`. Los artefactos temporales del compañero visual
 permanecen excluidos de Git.
-

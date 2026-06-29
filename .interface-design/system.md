@@ -27,9 +27,11 @@ periodo activo, no en ornamentos literales.
 
 ## Patrones
 
+- Login: composición dividida en escritorio; panel negro con logo blanco,
+  «El escenario es tuyo. Nosotros te acompañamos.» y «Sistema Integral del Club
+  de Arte & Cultura»; formulario de DNI sobre superficie clara.
 - Dashboard adaptativo: solo muestra información útil para los permisos del
   usuario; si no existe, saludo, periodo y accesos permitidos.
 - Navegación: grupos ocultos cuando no contienen opciones autorizadas.
 - Datos críticos: confirmación del servidor antes de reflejar éxito.
 - Estados completos: interacción, carga, vacío, error y permiso insuficiente.
-
