@@ -1,0 +1,91 @@
+import { LogOut, Menu, Moon, Sun, X } from 'lucide-react';
+import { useState } from 'react';
+import { NavLink, Outlet } from 'react-router-dom';
+import logoWhite from '../assets/brand/logo-white.png';
+import { useTheme } from '../app/ThemeProvider';
+import { Button } from '../components/ui/Button';
+import { useAuth } from '../features/auth/AuthProvider';
+import { cn } from '../lib/cn';
+
+export function MainLayout() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
+  const { profile, logout } = useAuth();
+
+  return (
+    <div className="workspace">
+      <button
+        aria-label="Cerrar navegación"
+        className={cn('workspace-overlay', menuOpen && 'is-open')}
+        onClick={() => setMenuOpen(false)}
+        type="button"
+      />
+      <aside className={cn('sidebar', menuOpen && 'is-open')}>
+        <div className="sidebar__brand">
+          <img alt="Club de Arte & Cultura" src={logoWhite} />
+          <button
+            aria-label="Cerrar menú"
+            className="sidebar__mobile-close"
+            onClick={() => setMenuOpen(false)}
+            type="button"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <nav aria-label="Navegación principal" className="sidebar__nav">
+          <p>Espacio de trabajo</p>
+          <NavLink
+            className={({ isActive }) => cn('sidebar__link', isActive && 'is-active')}
+            onClick={() => setMenuOpen(false)}
+            to="/"
+          >
+            Panel general
+          </NavLink>
+        </nav>
+
+        <div className="sidebar__profile">
+          <div className="profile-row">
+            <span className="profile-avatar" aria-hidden="true">
+              {profile?.nombres.charAt(0).toUpperCase()}
+            </span>
+            <div>
+              <strong>{profile?.nombreCompleto}</strong>
+              <span>{profile?.roles.map((role) => role.nombre).join(' · ')}</span>
+            </div>
+          </div>
+          <div className="sidebar__actions">
+            <button
+              aria-label={theme === 'dark' ? 'Usar tema claro' : 'Usar tema oscuro'}
+              onClick={toggleTheme}
+              type="button"
+            >
+              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+            <button aria-label="Cerrar sesión" onClick={logout} type="button">
+              <LogOut size={18} />
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <div className="workspace-main">
+        <header className="workspace-header">
+          <Button
+            aria-label="Abrir navegación"
+            className="mobile-menu-button"
+            onClick={() => setMenuOpen(true)}
+            variant="ghost"
+          >
+            <Menu size={20} />
+          </Button>
+          <div>
+            <span>SICAC</span>
+            <p>Sistema Integral del Club de Arte & Cultura</p>
+          </div>
+        </header>
+        <Outlet />
+      </div>
+    </div>
+  );
+}
