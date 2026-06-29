@@ -1,5 +1,11 @@
 import { api } from '../../../api/client';
-import type { PaginatedResponse, PersonDetail, PersonListItem, RoleCode } from '../../../api/types';
+import type {
+  PaginatedResponse,
+  PersonDetail,
+  PersonListItem,
+  RoleCode,
+  StudentState,
+} from '../../../api/types';
 
 export type PeopleFilters = {
   search?: string;
@@ -66,5 +72,10 @@ export type AssignGuardianInput = {
 
 export async function assignStudentGuardian(studentId: string, input: AssignGuardianInput) {
   const { data } = await api.post(`/alumnos/${studentId}/tutores`, input);
+  return data;
+}
+
+export async function updateStudentProfile(personId: string, input: { estado: StudentState }) {
+  const { data } = await api.patch(`/alumnos/${personId}`, input);
   return data;
 }

@@ -4,6 +4,7 @@ import {
   canAssignGuardian,
   canProvisionAccess,
   canResetPassword,
+  canUpdateStudentProfile,
   hasActiveRole,
 } from './personActions';
 
@@ -20,6 +21,7 @@ function personWithRoles(roles: RoleCode[]): PersonDetail {
     estado: 'activo',
     tieneAcceso: true,
     fechaNacimiento: null,
+    alumnoPerfil: null,
     roles: roles.map((codigo) => ({
       codigo,
       nombre: codigo,
@@ -45,6 +47,12 @@ describe('personActions', () => {
   it('gestores académicos pueden asignar tutores', () => {
     expect(canAssignGuardian(['GESTOR_ACADEMICO'])).toBe(true);
     expect(canAssignGuardian(['PROFESOR'])).toBe(false);
+  });
+
+  it('dirección y gestión académica pueden actualizar perfil de alumno', () => {
+    expect(canUpdateStudentProfile(['DIRECTOR_ACADEMICO'])).toBe(true);
+    expect(canUpdateStudentProfile(['GESTOR_ACADEMICO'])).toBe(true);
+    expect(canUpdateStudentProfile(['PROFESOR'])).toBe(false);
   });
 
   it('detecta roles activos sin fecha fin', () => {

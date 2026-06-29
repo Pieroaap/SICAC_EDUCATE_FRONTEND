@@ -20,6 +20,7 @@ import {
 import { PersonAccessPanel } from './PersonAccessPanel';
 import { PersonFormSections } from './PersonFormSections';
 import { PersonGuardiansPanel } from './PersonGuardiansPanel';
+import { PersonStudentProfilePanel } from './PersonStudentProfilePanel';
 
 export function PersonDetailPage() {
   const { personId = '' } = useParams();
@@ -189,6 +190,29 @@ export function PersonDetailPage() {
       <form className="entity-form" noValidate onSubmit={onSubmit}>
         <PersonFormSections errors={errors} register={register} />
 
+        <footer className="form-actions form-actions--split">
+          <Button
+            className="status-toggle-button"
+            disabled={statusMutation.isPending}
+            onClick={toggleStatus}
+            type="button"
+            variant="ghost"
+          >
+            {statusMutation.isPending ? <LoaderCircle className="animate-spin" size={18} /> : null}
+            {statusActionLabel}
+          </Button>
+
+          <div className="form-actions__primary">
+            <Button asChild variant="secondary"><Link to="/personas">Volver</Link></Button>
+            <Button disabled={saveMutation.isPending || !isDirty} type="submit">
+              {saveMutation.isPending ? <LoaderCircle className="animate-spin" size={18} /> : null}
+              Guardar cambios
+            </Button>
+          </div>
+        </footer>
+      </form>
+
+      <div className="entity-form" aria-label="Contexto operativo">
         <section>
           <header>
             <span>03</span>
@@ -228,36 +252,22 @@ export function PersonDetailPage() {
             />
 
             {isStudent ? (
-              <PersonGuardiansPanel
-                actorRoles={actorRoles}
-                onFeedback={setFeedback}
-                person={person}
-              />
+              <>
+                <PersonStudentProfilePanel
+                  actorRoles={actorRoles}
+                  onFeedback={setFeedback}
+                  person={person}
+                />
+                <PersonGuardiansPanel
+                  actorRoles={actorRoles}
+                  onFeedback={setFeedback}
+                  person={person}
+                />
+              </>
             ) : null}
           </div>
         </section>
-
-        <footer className="form-actions form-actions--split">
-          <Button
-            className="status-toggle-button"
-            disabled={statusMutation.isPending}
-            onClick={toggleStatus}
-            type="button"
-            variant="ghost"
-          >
-            {statusMutation.isPending ? <LoaderCircle className="animate-spin" size={18} /> : null}
-            {statusActionLabel}
-          </Button>
-
-          <div className="form-actions__primary">
-            <Button asChild variant="secondary"><Link to="/personas">Volver</Link></Button>
-            <Button disabled={saveMutation.isPending || !isDirty} type="submit">
-              {saveMutation.isPending ? <LoaderCircle className="animate-spin" size={18} /> : null}
-              Guardar cambios
-            </Button>
-          </div>
-        </footer>
-      </form>
+      </div>
     </main>
   );
 }

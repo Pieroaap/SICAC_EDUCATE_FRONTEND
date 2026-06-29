@@ -74,6 +74,13 @@ export type PersonListItem = {
 
 export type PersonDetail = Omit<PersonListItem, 'roles'> & {
   fechaNacimiento: string | null;
+  alumnoPerfil: {
+    estado: StudentState;
+    anioIngreso: number;
+    periodoIngreso: string;
+    beneficio: 'becado' | 'credito' | 'becado_credito' | 'normal';
+    tipoBeneficio: 'regular' | 'media_beca' | 'tercio_beca' | 'especial' | 'beca_completa';
+  } | null;
   roles: Array<{
     codigo: RoleCode;
     nombre: string;

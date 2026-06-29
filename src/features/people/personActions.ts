@@ -28,6 +28,8 @@ export function canAssignGuardian(actorRoles: RoleCode[]) {
   ));
 }
 
+export const canUpdateStudentProfile = canAssignGuardian;
+
 export function canResetPassword(actorRoles: RoleCode[], target: PersonDetail) {
   if (actorRoles.includes('ADMINISTRADOR_SISTEMA')) return true;
   if (!actorRoles.includes('DIRECTOR_ACADEMICO')) return false;
