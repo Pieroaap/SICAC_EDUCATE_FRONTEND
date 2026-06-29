@@ -39,6 +39,22 @@ function fieldError(error: unknown) {
     : undefined;
 }
 
+function getContextTitle(role: CreatePersonValues['initialRole']) {
+  if (role === 'ALUMNO') return 'Crear alumno';
+  if (role === 'PROFESOR') return 'Crear profesor';
+  return 'Nueva persona';
+}
+
+function getContextDescription(role: CreatePersonValues['initialRole']) {
+  if (role === 'ALUMNO') {
+    return 'Crea la identidad del alumno, su perfil académico editable y, si corresponde, su tutor inicial.';
+  }
+  if (role === 'PROFESOR') {
+    return 'Crea la identidad del docente con el rol Profesor ya seleccionado.';
+  }
+  return 'Crea una identidad con rol inicial. Los tutores pueden existir sin rol de sistema.';
+}
+
 export function PersonCreatePage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -68,8 +84,11 @@ export function PersonCreatePage() {
   const createMutation = useMutation({
     mutationFn: createPerson,
     onSuccess: async (result) => {
-      await queryClient.invalidateQueries({ queryKey: ['people'] });
-      await queryClient.invalidateQueries({ queryKey: ['students'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['people'] }),
+        queryClient.invalidateQueries({ queryKey: ['students'] }),
+        queryClient.invalidateQueries({ queryKey: ['teachers'] }),
+      ]);
       const createdId = typeof result === 'object' && result && 'person' in result
         && typeof result.person === 'object' && result.person && 'id' in result.person
         ? String(result.person.id)
@@ -95,12 +114,8 @@ export function PersonCreatePage() {
       <header className="page-heading">
         <div>
           <p className="eyebrow">Identidad</p>
-          <h1>{defaultInitialRole === 'ALUMNO' ? 'Crear alumno' : 'Nueva persona'}</h1>
-          <p>
-            {defaultInitialRole === 'ALUMNO'
-              ? 'Crea la identidad del alumno, su perfil académico editable y, si corresponde, su tutor inicial.'
-              : 'Crea una identidad con rol inicial. Los tutores pueden existir sin rol de sistema.'}
-          </p>
+          <h1>{getContextTitle(defaultInitialRole)}</h1>
+          <p>{getContextDescription(defaultInitialRole)}</p>
         </div>
       </header>
 

@@ -74,4 +74,15 @@ describe('personForm helpers', () => {
       fechaInicio: '2026-01-01',
     });
   });
+
+  it('creates professor payload without student-only fields', () => {
+    expect(toCreatePersonPayload({
+      ...emptyCreatePersonValues,
+      initialRole: 'PROFESOR',
+    })).toMatchObject({
+      initialRole: 'PROFESOR',
+      alumnoPerfil: undefined,
+      tutor: undefined,
+    });
+  });
 });
