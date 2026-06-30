@@ -5,6 +5,7 @@ import {
   toCreatePersonPayload,
   toPersonFormValues,
   toPersonPayload,
+  toPersonUpdatePayload,
 } from './personForm';
 
 describe('personForm helpers', () => {
@@ -40,6 +41,33 @@ describe('personForm helpers', () => {
       correo: '',
       telefono: '',
       fechaNacimiento: '',
+    });
+  });
+
+  it('sends only dirty fields on update', () => {
+    expect(toPersonUpdatePayload({
+      ...emptyPersonValues,
+      numeroDocumento: '12345678',
+      nombres: 'Nadia',
+      apellidoPaterno: 'Vega',
+    }, {
+      apellidoPaterno: true,
+    })).toEqual({
+      apellidoPaterno: 'Vega',
+    });
+  });
+
+  it('sends null when clearing optional values on update', () => {
+    expect(toPersonUpdatePayload({
+      ...emptyPersonValues,
+      numeroDocumento: '12345678',
+      nombres: 'Nadia',
+      apellidoPaterno: 'Vega',
+      telefono: '',
+    }, {
+      telefono: true,
+    })).toEqual({
+      telefono: null,
     });
   });
 

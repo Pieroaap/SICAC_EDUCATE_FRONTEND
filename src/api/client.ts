@@ -50,8 +50,12 @@ api.interceptors.response.use(
 );
 
 export function getApiErrorMessage(error: unknown, fallback: string) {
-  if (axios.isAxiosError<{ message?: string }>(error)) {
-    return error.response?.data?.message ?? fallback;
+  if (axios.isAxiosError<{ message?: string; error?: string }>(error)) {
+    const apiMessage = error.response?.data?.message;
+    if (apiMessage) return apiMessage;
+    if (error.response?.status) return `${fallback} (${error.response.status})`;
+    if (error.message) return `${fallback} ${error.message}`;
+    return fallback;
   }
   return fallback;
 }

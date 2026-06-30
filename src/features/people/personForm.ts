@@ -101,6 +101,40 @@ export function toPersonPayload(values: PersonValues) {
   };
 }
 
+const nullableOnEditFields = new Set<keyof PersonValues>([
+  'apellidoMaterno',
+  'correo',
+  'telefono',
+  'fechaNacimiento',
+]);
+
+type PersonUpdatePayload = {
+  tipoDocumento?: PersonValues['tipoDocumento'];
+  numeroDocumento?: string;
+  nombres?: string;
+  apellidoPaterno?: string;
+  apellidoMaterno?: string | null;
+  correo?: string | null;
+  telefono?: string | null;
+  fechaNacimiento?: string | null;
+};
+
+export function toPersonUpdatePayload(
+  values: PersonValues,
+  dirtyFields: Partial<Record<keyof PersonValues, boolean>>,
+) {
+  const payload: PersonUpdatePayload = {};
+
+  for (const key of Object.keys(dirtyFields) as Array<keyof PersonValues>) {
+    if (!dirtyFields[key]) continue;
+    const value = values[key];
+    const normalizedValue = value || (nullableOnEditFields.has(key) ? null : undefined);
+    Object.assign(payload, { [key]: normalizedValue });
+  }
+
+  return payload;
+}
+
 function cleanPersonPayload(values: PersonValues) {
   return toPersonPayload(values);
 }

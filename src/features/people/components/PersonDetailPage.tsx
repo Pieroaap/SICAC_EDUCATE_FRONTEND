@@ -14,7 +14,7 @@ import {
   emptyPersonValues,
   personSchema,
   toPersonFormValues,
-  toPersonPayload,
+  toPersonUpdatePayload,
   type PersonValues,
 } from '../personForm';
 import { PersonAccessPanel } from './PersonAccessPanel';
@@ -31,7 +31,7 @@ export function PersonDetailPage() {
     register,
     handleSubmit,
     reset,
-    formState: { errors, isDirty },
+    formState: { dirtyFields, errors, isDirty },
   } = useForm<PersonValues>({
     resolver: zodResolver(personSchema),
     defaultValues: emptyPersonValues,
@@ -50,7 +50,7 @@ export function PersonDetailPage() {
   }, [personDetail.data, reset]);
 
   const saveMutation = useMutation({
-    mutationFn: (values: PersonValues) => updatePerson(personId, toPersonPayload(values)),
+    mutationFn: (values: PersonValues) => updatePerson(personId, toPersonUpdatePayload(values, dirtyFields)),
     onSuccess: async () => {
       setFeedback({ type: 'success', message: 'La persona fue actualizada correctamente.' });
       await Promise.all([
