@@ -1,9 +1,10 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Presentation, SquarePen } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { StatusBadge } from '../../../components/StatusBadge';
 import { Button } from '../../../components/ui/Button';
+import { useDebouncedValue } from '../../../lib/useDebouncedValue';
 import { getTeachers } from '../api/profilesApi';
 import { DirectoryPagination, DirectoryToolbar } from './DirectoryControls';
 
@@ -19,6 +20,7 @@ export function TeachersListPage() {
   const rawPage = Number(searchParams.get('page') ?? '1');
   const page = Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1;
   const [searchDraft, setSearchDraft] = useState(search);
+  const debouncedSearch = useDebouncedValue(searchDraft.trim(), 350);
   const teachers = useQuery({
     queryKey: ['teachers', { search, estado, page, pageSize: PAGE_SIZE }],
     queryFn: () => getTeachers({
@@ -28,7 +30,19 @@ export function TeachersListPage() {
       pageSize: PAGE_SIZE,
     }),
     placeholderData: keepPreviousData,
+    refetchOnWindowFocus: false,
+    staleTime: 30_000,
   });
+
+  useEffect(() => {
+    if (debouncedSearch !== searchDraft.trim()) return;
+    if (debouncedSearch === search) return;
+    const params = new URLSearchParams(searchParams);
+    if (debouncedSearch) params.set('search', debouncedSearch);
+    else params.delete('search');
+    params.delete('page');
+    setSearchParams(params, { replace: true });
+  }, [debouncedSearch, search, searchDraft, searchParams, setSearchParams]);
 
   function updateParams(next: { search?: string; estado?: string; page?: number }) {
     const params = new URLSearchParams(searchParams);
@@ -47,6 +61,7 @@ export function TeachersListPage() {
 
   const result = teachers.data;
   const hasFilters = Boolean(search || estado);
+  const isSearching = searchDraft.trim() !== search || teachers.isFetching;
 
   return (
     <main className="page-shell">
@@ -62,6 +77,7 @@ export function TeachersListPage() {
       </header>
 
       <DirectoryToolbar
+        isSearching={isSearching}
         onSearchChange={setSearchDraft}
         onSearchSubmit={submitSearch}
         onStatusChange={(value) => updateParams({ estado: value })}

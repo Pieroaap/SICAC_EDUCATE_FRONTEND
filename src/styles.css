@@ -451,6 +451,14 @@ button:disabled { cursor: default; }
 .search-box > svg { flex: 0 0 auto; margin-left: 0.35rem; color: var(--ink-muted); }
 .search-box input { min-height: 42px; border: 0; background: transparent; box-shadow: none; }
 .search-box input:focus { box-shadow: none; }
+.search-box__status {
+  flex: 0 0 auto;
+  color: #c41e3a;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 .search-box button { min-height: 40px; }
 .select-filter { flex: 0 0 155px; display: grid; gap: 0.25rem; }
 .select-filter span { color: var(--ink-muted); font-size: 0.66rem; font-weight: 800; text-transform: uppercase; }
@@ -610,6 +618,8 @@ button:disabled { cursor: default; }
 .form-page { max-width: 1120px; }
 .detail-page { display: grid; gap: 1rem; }
 .detail-heading { margin-bottom: 0; }
+.detail-page > form.entity-form { order: 1; }
+.detail-page > .operational-sections { order: 2; }
 .person-summary-grid {
   display: grid;
   grid-template-columns: 1.2fr repeat(2, minmax(0, 1fr));

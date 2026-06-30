@@ -1,5 +1,5 @@
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
-import type { FormEvent } from 'react';
+import { ChevronLeft, ChevronRight, LoaderCircle, Search } from 'lucide-react';
+import type { FormEvent, ReactNode } from 'react';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 
@@ -15,6 +15,8 @@ export function DirectoryToolbar({
   onSearchChange,
   onSearchSubmit,
   onStatusChange,
+  isSearching = false,
+  extraFilters,
 }: {
   searchDraft: string;
   status: string;
@@ -22,17 +24,22 @@ export function DirectoryToolbar({
   onSearchChange: (value: string) => void;
   onSearchSubmit: (event: FormEvent) => void;
   onStatusChange: (value: string) => void;
+  isSearching?: boolean;
+  extraFilters?: ReactNode;
 }) {
   return (
     <section className="list-toolbar" aria-label="Filtros">
       <form className="search-box" onSubmit={onSearchSubmit}>
-        <Search aria-hidden="true" size={18} />
+        {isSearching
+          ? <LoaderCircle aria-hidden="true" className="animate-spin" size={18} />
+          : <Search aria-hidden="true" size={18} />}
         <Input
           aria-label="Buscar"
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder="DNI, nombre, apellido o correo"
           value={searchDraft}
         />
+        {isSearching ? <span className="search-box__status">Buscando</span> : null}
         <Button type="submit" variant="secondary">Buscar</Button>
       </form>
       <label className="select-filter">
@@ -44,6 +51,7 @@ export function DirectoryToolbar({
           ))}
         </select>
       </label>
+      {extraFilters}
     </section>
   );
 }

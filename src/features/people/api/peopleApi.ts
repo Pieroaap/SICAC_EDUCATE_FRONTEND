@@ -11,6 +11,7 @@ import type { InitialPersonRole, StudentProfileValues } from '../personForm';
 export type PeopleFilters = {
   search?: string;
   estado?: 'activo' | 'inactivo';
+  rol?: RoleCode;
   page: number;
   pageSize: number;
 };
