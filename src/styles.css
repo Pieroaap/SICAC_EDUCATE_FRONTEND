@@ -640,7 +640,7 @@ button:disabled { cursor: default; }
   color: white;
   font-size: clamp(1.45rem, 2.3vw, 1.9rem);
 }
-.person-summary-card--hero dl { display: none; }
+.person-summary-card__legacy,
 .person-summary-card--data > strong,
 .person-summary-card--data > span { display: none; }
 .person-summary-card > span,
@@ -755,6 +755,9 @@ button:disabled { cursor: default; }
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
+}
+.detail-grid--single {
+  grid-template-columns: 1fr;
 }
 .detail-panel {
   display: grid;

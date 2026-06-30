@@ -146,7 +146,7 @@ export function PersonDetailPage() {
           <p className="eyebrow">Ficha</p>
           <strong>{personName}</strong>
           <span>{person.estado === 'activo' ? 'Registro activo' : 'Registro inactivo'}</span>
-          <dl>
+          <dl className="person-summary-card__legacy">
             <div>
               <dt>Correo</dt>
               <dd>{person.correo ?? 'Sin correo registrado'}</dd>
@@ -230,13 +230,13 @@ export function PersonDetailPage() {
         </footer>
       </form>
 
-      <div className="entity-form" aria-label="Contexto operativo">
+      <div className="entity-form operational-sections" aria-label="Datos operativos">
         <section>
           <header>
             <span>03</span>
             <div>
-              <h2>Contexto operativo</h2>
-              <p>Solo lectura para mantener visibilidad del uso real del registro.</p>
+              <h2>Rol y acceso</h2>
+              <p>Roles asignados y cuenta operativa de la persona.</p>
             </div>
           </header>
           <div className="detail-grid">
@@ -268,23 +268,46 @@ export function PersonDetailPage() {
               onFeedback={setFeedback}
               person={person}
             />
+          </div>
+        </section>
 
-            {isStudent ? (
-              <>
+        {isStudent ? (
+          <>
+            <section>
+              <header>
+                <span>04</span>
+                <div>
+                  <h2>Alumno</h2>
+                  <p>Estado académico, beneficio y datos propios del perfil de alumno.</p>
+                </div>
+              </header>
+              <div className="detail-grid detail-grid--single">
                 <PersonStudentProfilePanel
                   actorRoles={actorRoles}
                   onFeedback={setFeedback}
                   person={person}
                 />
+              </div>
+            </section>
+
+            <section>
+              <header>
+                <span>05</span>
+                <div>
+                  <h2>Tutor</h2>
+                  <p>Relaciones de tutoría asociadas al alumno, cuando correspondan.</p>
+                </div>
+              </header>
+              <div className="detail-grid detail-grid--single">
                 <PersonGuardiansPanel
                   actorRoles={actorRoles}
                   onFeedback={setFeedback}
                   person={person}
                 />
-              </>
-            ) : null}
-          </div>
-        </section>
+              </div>
+            </section>
+          </>
+        ) : null}
       </div>
     </main>
   );
