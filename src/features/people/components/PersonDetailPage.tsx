@@ -8,7 +8,7 @@ import { getApiErrorMessage } from '../../../api/client';
 import { StatusBadge } from '../../../components/StatusBadge';
 import { Button } from '../../../components/ui/Button';
 import { useAuth } from '../../auth/AuthProvider';
-import { getPersonDetail, updatePerson } from '../api/peopleApi';
+import { getPersonDetail, updatePerson, updateTeacherRoleStatus } from '../api/peopleApi';
 import { hasActiveRole } from '../personActions';
 import {
   emptyPersonValues,
@@ -55,6 +55,8 @@ export function PersonDetailPage() {
       setFeedback({ type: 'success', message: 'La persona fue actualizada correctamente.' });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['people'] }),
+        queryClient.invalidateQueries({ queryKey: ['students'] }),
+        queryClient.invalidateQueries({ queryKey: ['teachers'] }),
         queryClient.invalidateQueries({ queryKey: ['person', personId] }),
       ]);
     },
@@ -74,11 +76,35 @@ export function PersonDetailPage() {
       });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['people'] }),
+        queryClient.invalidateQueries({ queryKey: ['students'] }),
+        queryClient.invalidateQueries({ queryKey: ['teachers'] }),
         queryClient.invalidateQueries({ queryKey: ['person', personId] }),
       ]);
     },
     onError: (error) => {
       setFeedback({ type: 'error', message: getApiErrorMessage(error, 'No pudimos cambiar el estado de la persona.') });
+    },
+  });
+
+  const teacherStatusMutation = useMutation({
+    mutationFn: (input: { targetId: string; estado: 'activo' | 'inactivo' }) => (
+      updateTeacherRoleStatus(input.targetId, { estado: input.estado })
+    ),
+    onSuccess: async (_, input) => {
+      setFeedback({
+        type: 'success',
+        message: input.estado === 'activo'
+          ? 'El rol Profesor fue reactivado correctamente.'
+          : 'El rol Profesor fue inactivado correctamente.',
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['people'] }),
+        queryClient.invalidateQueries({ queryKey: ['teachers'] }),
+        queryClient.invalidateQueries({ queryKey: ['person', input.targetId] }),
+      ]);
+    },
+    onError: (error) => {
+      setFeedback({ type: 'error', message: getApiErrorMessage(error, 'No pudimos actualizar el rol Profesor.') });
     },
   });
 
@@ -107,6 +133,13 @@ export function PersonDetailPage() {
     .filter(Boolean)
     .join(' ');
   const isStudent = hasActiveRole(person, 'ALUMNO');
+  const teacherRole = person.roles.find((role) => role.codigo === 'PROFESOR' && !role.fechaFin);
+  const canUpdateTeacherRole = actorRoles.some((role) => (
+    role === 'ADMINISTRADOR_SISTEMA'
+    || role === 'DIRECTOR_ACADEMICO'
+    || role === 'GESTOR_ACADEMICO'
+  ));
+  const nextTeacherStatus = teacherRole?.estado === 'activo' ? 'inactivo' : 'activo';
   const nextStatus = person.estado === 'activo' ? 'inactivo' : 'activo';
   const statusActionLabel = nextStatus === 'inactivo' ? 'Inactivar registro' : 'Reactivar registro';
   const statusPrompt = nextStatus === 'inactivo'
@@ -129,8 +162,6 @@ export function PersonDetailPage() {
       <header className="page-heading detail-heading">
         <div>
           <p className="eyebrow">Identidad</p>
-          <h1>{personName}</h1>
-          <p>Corrige datos, revisa roles y gestiona el estado operativo del registro.</p>
         </div>
         <StatusBadge active={person.estado === 'activo'} />
       </header>
@@ -205,30 +236,7 @@ export function PersonDetailPage() {
         </article>
       </section>
 
-      <form className="entity-form" noValidate onSubmit={onSubmit}>
-        <PersonFormSections errors={errors} register={register} />
-
-        <footer className="form-actions form-actions--split">
-          <Button
-            className="status-toggle-button"
-            disabled={statusMutation.isPending}
-            onClick={toggleStatus}
-            type="button"
-            variant="ghost"
-          >
-            {statusMutation.isPending ? <LoaderCircle className="animate-spin" size={18} /> : null}
-            {statusActionLabel}
-          </Button>
-
-          <div className="form-actions__primary">
-            <Button asChild variant="secondary"><Link to="/personas">Volver</Link></Button>
-            <Button disabled={saveMutation.isPending || !isDirty} type="submit">
-              {saveMutation.isPending ? <LoaderCircle className="animate-spin" size={18} /> : null}
-              Guardar cambios
-            </Button>
-          </div>
-        </footer>
-      </form>
+      
 
       <div className="entity-form operational-sections" aria-label="Datos operativos">
         <section>
@@ -268,6 +276,31 @@ export function PersonDetailPage() {
               onFeedback={setFeedback}
               person={person}
             />
+
+            {teacherRole ? (
+              <div className="detail-panel action-panel">
+                <h3>Estado docente</h3>
+                <p>
+                  El listado de profesores usa el estado del rol Profesor, independiente del estado base de la persona.
+                </p>
+                <p>
+                  Estado actual: <strong>{teacherRole.estado === 'activo' ? 'Activo' : 'Inactivo'}</strong>
+                </p>
+                <Button
+                  disabled={!canUpdateTeacherRole || teacherStatusMutation.isPending}
+                  onClick={() => {
+                    setFeedback(null);
+                    teacherStatusMutation.mutate({ targetId: person.id, estado: nextTeacherStatus });
+                  }}
+                  type="button"
+                  variant="secondary"
+                >
+                  {teacherStatusMutation.isPending ? <LoaderCircle className="animate-spin" size={17} /> : null}
+                  {nextTeacherStatus === 'activo' ? 'Reactivar profesor' : 'Inactivar profesor'}
+                </Button>
+                {!canUpdateTeacherRole ? <small>No tienes permisos para cambiar el estado docente.</small> : null}
+              </div>
+            ) : null}
           </div>
         </section>
 
@@ -309,6 +342,30 @@ export function PersonDetailPage() {
           </>
         ) : null}
       </div>
+      <form className="entity-form" noValidate onSubmit={onSubmit}>
+        <PersonFormSections errors={errors} register={register} />
+
+        <footer className="form-actions form-actions--split">
+          <Button
+            className="status-toggle-button"
+            disabled={statusMutation.isPending}
+            onClick={toggleStatus}
+            type="button"
+            variant="ghost"
+          >
+            {statusMutation.isPending ? <LoaderCircle className="animate-spin" size={18} /> : null}
+            {statusActionLabel}
+          </Button>
+
+          <div className="form-actions__primary">
+            <Button asChild variant="secondary"><Link to="/personas">Volver</Link></Button>
+            <Button disabled={saveMutation.isPending || !isDirty} type="submit">
+              {saveMutation.isPending ? <LoaderCircle className="animate-spin" size={18} /> : null}
+              Guardar cambios
+            </Button>
+          </div>
+        </footer>
+      </form>
     </main>
   );
 }

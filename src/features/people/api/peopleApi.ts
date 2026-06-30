@@ -100,3 +100,11 @@ export async function updateStudentProfile(
   const { data } = await api.patch(`/alumnos/${personId}`, input);
   return data;
 }
+
+export async function updateTeacherRoleStatus(
+  personId: string,
+  input: { estado: 'activo' | 'inactivo' },
+) {
+  const { data } = await api.patch(`/profesores/${personId}`, input);
+  return data;
+}
