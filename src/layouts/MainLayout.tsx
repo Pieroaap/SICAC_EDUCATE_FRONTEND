@@ -1,6 +1,6 @@
-import { LogOut, Menu, Moon, Sun, X } from 'lucide-react';
+import { ChevronDown, LogOut, Menu, Moon, Sun, X } from 'lucide-react';
 import { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import logoWhite from '../assets/brand/logo-white.png';
 import { getNavigationGroups } from '../app/navigation';
 import { useTheme } from '../app/ThemeProvider';
@@ -10,10 +10,16 @@ import { cn } from '../lib/cn';
 
 export function MainLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ Identidad: true });
+  const location = useLocation();
   const { theme, toggleTheme } = useTheme();
   const { profile, logout } = useAuth();
   const roleCodes = profile?.roles.map((role) => role.codigo) ?? [];
   const navigationGroups = getNavigationGroups(roleCodes);
+  const activeGroupLabel = navigationGroups.find((group) => (
+    group.label !== 'Espacio de trabajo'
+    && group.items.some((item) => location.pathname === item.to || location.pathname.startsWith(`${item.to}/`))
+  ))?.label;
 
   return (
     <div className="workspace">
@@ -39,18 +45,35 @@ export function MainLayout() {
         <nav aria-label="Navegación principal" className="sidebar__nav">
           {navigationGroups.map((group) => (
             <div className="sidebar__group" key={group.label}>
-              <p>{group.label}</p>
-              {group.items.map((item) => (
-                <NavLink
-                  className={({ isActive }) => cn('sidebar__link', isActive && 'is-active')}
-                  end={item.to === '/'}
-                  key={item.to}
-                  onClick={() => setMenuOpen(false)}
-                  to={item.to}
+              {group.label === 'Espacio de trabajo' ? <p>{group.label}</p> : (
+                <button
+                  aria-expanded={Boolean(openGroups[group.label] || activeGroupLabel === group.label)}
+                  className="sidebar__group-toggle"
+                  onClick={() => setOpenGroups((current) => ({
+                    ...current,
+                    [group.label]: !current[group.label],
+                  }))}
+                  type="button"
                 >
-                  {item.label}
-                </NavLink>
-              ))}
+                  <span>{group.label}</span>
+                  <ChevronDown aria-hidden="true" size={16} />
+                </button>
+              )}
+              {(group.label === 'Espacio de trabajo' || openGroups[group.label] || activeGroupLabel === group.label) ? (
+                <div className="sidebar__group-items">
+                  {group.items.map((item) => (
+                    <NavLink
+                      className={({ isActive }) => cn('sidebar__link', isActive && 'is-active')}
+                      end={item.to === '/'}
+                      key={item.to}
+                      onClick={() => setMenuOpen(false)}
+                      to={item.to}
+                    >
+                      {item.label}
+                    </NavLink>
+                  ))}
+                </div>
+              ) : null}
             </div>
           ))}
         </nav>

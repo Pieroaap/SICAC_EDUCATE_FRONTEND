@@ -11,6 +11,16 @@ describe('getNavigationGroups', () => {
     const items = getNavigationGroups(['DIRECTOR_ACADEMICO', 'GESTOR_ACADEMICO'])
       .flatMap((group) => group.items.map((item) => item.label));
 
-    expect(items).toEqual(['Panel general', 'Personas', 'Alumnos', 'Profesores']);
+    expect(items).toEqual([
+      'Panel general',
+      'Personas',
+      'Alumnos',
+      'Profesores',
+      'Carreras',
+      'Planes curriculares',
+      'Cursos',
+      'Cursos por plan',
+      'Periodos academicos',
+    ]);
   });
 });

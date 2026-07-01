@@ -30,7 +30,6 @@ export type LoginResponse = {
 export type DashboardResponse = {
   periodoActivo: {
     id: string;
-    codigo: string;
     nombre: string;
     fechaInicio: string;
     fechaFin: string;
@@ -144,4 +143,51 @@ export type TeacherListItem = {
   correo: string | null;
   estado: 'activo' | 'inactivo';
   tieneAcceso: boolean;
+};
+
+export type ActiveState = 'activo' | 'inactivo';
+
+export type Career = {
+  id: string;
+  codigo: string;
+  nombre: string;
+  descripcion: string | null;
+  estado: ActiveState;
+};
+
+export type CurriculumPlan = {
+  id: string;
+  carreraId: string;
+  codigo: string;
+  nombre: string;
+  version: string;
+  estado: ActiveState;
+};
+
+export type Course = {
+  id: string;
+  codigo: string;
+  nombre: string;
+  tipo: 'obligatorio' | 'electivo';
+  estado: ActiveState;
+};
+
+export type PlanCourse = {
+  id: string;
+  planCurricularId: string;
+  cursoId: string;
+  ciclo: number;
+  orden: number;
+  estado: ActiveState;
+  prerequisiteIds: string[];
+};
+
+export type AcademicPeriod = {
+  id: string;
+  anio: number;
+  periodo: 'I' | 'II' | 'III';
+  nombre: string;
+  fechaInicio: string;
+  fechaFin: string;
+  estado: ActiveState;
 };
