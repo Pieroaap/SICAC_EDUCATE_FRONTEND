@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  academicRecordSchema,
+  careerRegistrationSchema,
   authorizationSchema,
   enrollmentSchema,
   scheduledCourseSchema,
@@ -32,5 +34,22 @@ describe('formularios de operación académica', () => {
   it('exige un motivo suficiente para una excepción', () => {
     expect(authorizationSchema.safeParse({ motivo: 'breve' }).success).toBe(false);
     expect(authorizationSchema.safeParse({ motivo: 'Sustento académico documentado' }).success).toBe(true);
+  });
+  it('valida ciclo y fecha de la inscripción permanente', () => {
+    expect(careerRegistrationSchema.safeParse({
+      carreraId: id, planCurricularId: id, fechaInicio: '2026-07-02', cicloInicio: 1,
+    }).success).toBe(true);
+    expect(careerRegistrationSchema.safeParse({
+      carreraId: id, planCurricularId: id, fechaInicio: '2026-07-02', cicloInicio: 0,
+    }).success).toBe(false);
+  });
+
+  it('exige fecha o periodo para un antecedente reconocido', () => {
+    expect(academicRecordSchema.safeParse({
+      planCursoId: id, fechaReferencial: '', periodoReferencial: '', observacion: '',
+    }).success).toBe(false);
+    expect(academicRecordSchema.safeParse({
+      planCursoId: id, fechaReferencial: '', periodoReferencial: '2024-I', observacion: '',
+    }).success).toBe(true);
   });
 });

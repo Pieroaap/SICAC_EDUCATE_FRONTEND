@@ -5,6 +5,10 @@ import type {
   PrerequisiteAuthorization,
   ScheduledCourse,
   ScheduledCourseCandidate,
+  AcademicRecord,
+  BulkEnrollmentCandidate,
+  CareerRegistration,
+  PaginatedResponse,
 } from '../../../api/types';
 
 export const getScheduledCourses = async (filters?: {
@@ -55,3 +59,36 @@ export const enrollCourseCandidates = async (id: string, matriculaIds: string[])
 
 export const withdrawCourseStudent = async (id: string) =>
   (await api.patch(`/matriculas-cursos/${id}/estado`, { estado: 'retirado' })).data;
+
+export const getCareerRegistrations = async (personaId: string) =>
+  (await api.get<PaginatedResponse<CareerRegistration>>('/inscripciones-carrera', {
+    params: { personaId, pageSize: 100 },
+  })).data;
+
+export const createCareerRegistration = async (input: {
+  personaId: string; carreraId: string; planCurricularId: string;
+  fechaInicio: string; cicloInicio: number;
+}) => (await api.post<CareerRegistration>('/inscripciones-carrera', input)).data;
+
+export const updateCareerRegistrationState = async (id: string, estado: 'activo' | 'inactivo') =>
+  (await api.patch<CareerRegistration>(`/inscripciones-carrera/${id}/estado`, { estado })).data;
+
+export const getAcademicRecords = async (personaId: string) =>
+  (await api.get<PaginatedResponse<AcademicRecord>>('/antecedentes-academicos', {
+    params: { personaId, pageSize: 100 },
+  })).data;
+
+export const createAcademicRecord = async (input: {
+  personaId: string; planCursoId: string; fechaReferencial?: string;
+  periodoReferencial?: string; observacion?: string; fuente: 'manual';
+}) => (await api.post<AcademicRecord>('/antecedentes-academicos', input)).data;
+
+export const getBulkEnrollmentCandidates = async (input: {
+  carreraId: string; planCurricularId: string; periodoAcademicoId: string;
+}) => (await api.get<PaginatedResponse<BulkEnrollmentCandidate>>('/matriculas/candidatos', {
+  params: { ...input, pageSize: 100 },
+})).data;
+
+export const createBulkEnrollments = async (input: {
+  personaIds: string[]; carreraId: string; planCurricularId: string; periodoAcademicoId: string;
+}) => (await api.post('/matriculas/masiva', input)).data;

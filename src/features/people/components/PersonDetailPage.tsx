@@ -21,6 +21,8 @@ import { PersonAccessPanel } from './PersonAccessPanel';
 import { PersonFormSections } from './PersonFormSections';
 import { PersonGuardiansPanel } from './PersonGuardiansPanel';
 import { PersonStudentProfilePanel } from './PersonStudentProfilePanel';
+import { PersonCareerEnrollmentsPanel } from './PersonCareerEnrollmentsPanel';
+import { PersonAcademicRecordsPanel } from './PersonAcademicRecordsPanel';
 
 export function PersonDetailPage() {
   const { personId = '' } = useParams();
@@ -337,6 +339,20 @@ export function PersonDetailPage() {
                   onFeedback={setFeedback}
                   person={person}
                 />
+              </div>
+            </section>
+
+            <section>
+              <header>
+                <span>06</span>
+                <div>
+                  <h2>Trayectoria académica</h2>
+                  <p>Inscripciones permanentes y cursos históricos reconocidos.</p>
+                </div>
+              </header>
+              <div className="detail-grid">
+                <PersonCareerEnrollmentsPanel actorRoles={actorRoles} personId={person.id} />
+                <PersonAcademicRecordsPanel actorRoles={actorRoles} personId={person.id} />
               </div>
             </section>
           </>

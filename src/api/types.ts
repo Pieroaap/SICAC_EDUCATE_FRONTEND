@@ -283,3 +283,40 @@ export type ScheduledCourseCandidate = {
     estado: 'activo' | 'retirado' | 'completado' | 'anulado';
   } | null;
 };
+
+export type CareerRegistration = {
+  id: string;
+  personaId: string;
+  carreraId: string;
+  carreraNombre: string;
+  planCurricularId: string;
+  planNombre: string;
+  fechaInicio: string;
+  cicloInicio: number;
+  estado: ActiveState;
+  createdAt: string;
+};
+
+export type AcademicRecord = {
+  id: string;
+  personaId: string;
+  planCursoId: string;
+  cursoCodigo: string;
+  cursoNombre: string;
+  ciclo: number;
+  resultado: 'aprobado';
+  fechaReferencial: string | null;
+  periodoReferencial: string | null;
+  observacion: string | null;
+  fuente: 'manual' | 'importacion';
+  reconocidoPorPersonaId: string;
+  createdAt: string;
+};
+
+export type BulkEnrollmentCandidate = {
+  personaId: string;
+  dni: string;
+  nombres: string;
+  apellidoPaterno: string;
+  apellidoMaterno: string | null;
+};

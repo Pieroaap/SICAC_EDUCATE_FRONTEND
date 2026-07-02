@@ -21,5 +21,24 @@ export const authorizationSchema = z.object({
   motivo: z.string().trim().min(10, 'Describe el motivo en al menos 10 caracteres').max(500),
 });
 
+export const careerRegistrationSchema = z.object({
+  carreraId: uuid('Selecciona una carrera'),
+  planCurricularId: uuid('Selecciona un plan'),
+  fechaInicio: z.iso.date('Indica una fecha válida'),
+  cicloInicio: z.number().int().min(1, 'El ciclo mínimo es 1').max(20, 'El ciclo máximo es 20'),
+});
+
+export const academicRecordSchema = z.object({
+  planCursoId: uuid('Selecciona un curso'),
+  fechaReferencial: z.string(),
+  periodoReferencial: z.string().trim().max(100),
+  observacion: z.string().trim().max(1000),
+}).refine((value) => value.fechaReferencial || value.periodoReferencial, {
+  message: 'Indica una fecha o periodo referencial',
+  path: ['periodoReferencial'],
+});
+
 export type ScheduledCourseValues = z.infer<typeof scheduledCourseSchema>;
 export type EnrollmentValues = z.infer<typeof enrollmentSchema>;
+export type CareerRegistrationValues = z.infer<typeof careerRegistrationSchema>;
+export type AcademicRecordValues = z.infer<typeof academicRecordSchema>;

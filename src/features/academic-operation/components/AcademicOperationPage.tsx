@@ -40,6 +40,8 @@ import {
   withdrawCourseStudent,
   requestAuthorization,
   resolveAuthorization,
+  createBulkEnrollments,
+  getBulkEnrollmentCandidates,
 } from '../api/academicOperationApi';
 
 const today = new Date().toISOString().slice(0, 10);
@@ -169,11 +171,13 @@ function ScheduledCoursesView() {
 }
 
 function EnrollmentsView() {
+  const { profile } = useAuth();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState<CareerEnrollment | null>(null);
   const [studentSearch, setStudentSearch] = useState('');
   const [periodFilter, setPeriodFilter] = useState('');
+  const [showBulk, setShowBulk] = useState(false);
   const debouncedStudentSearch = useDebouncedValue(studentSearch.trim(), 300);
   const careers = useQuery({ queryKey: ['academic', 'careers'], queryFn: getCareers });
   const plans = useQuery({ queryKey: ['academic', 'plans'], queryFn: () => getCurriculumPlans() });
@@ -211,12 +215,18 @@ function EnrollmentsView() {
       await queryClient.invalidateQueries({ queryKey: ['operation', 'enrollments'] });
     },
   });
+  const canBulk = profile?.roles.some((role) => (
+    role.codigo === 'ADMINISTRADOR_SISTEMA' || role.codigo === 'GESTOR_ACADEMICO'
+  )) ?? false;
 
   return (
     <section className="operation-section">
       <div className="operation-section__heading">
         <div><h2>Matrículas por periodo</h2><p>El ciclo de ingreso permanece en el perfil; aquí se ordena la continuidad académica.</p></div>
-        <Button onClick={() => setShowForm((value) => !value)} type="button"><Plus size={16} />Nueva matrícula</Button>
+        <div className="decision-actions">
+          {canBulk ? <Button onClick={() => setShowBulk(true)} type="button" variant="secondary">Matrícula masiva</Button> : null}
+          <Button onClick={() => setShowForm((value) => !value)} type="button"><Plus size={16} />Nueva matrícula</Button>
+        </div>
       </div>
       <label className="select-filter operation-period-filter"><span>Periodo</span><select className="form-select" onChange={(event) => setPeriodFilter(event.target.value)} value={periodFilter}><option value="">Todos</option>{periods.data?.map((period) => <option key={period.id} value={period.id}>{period.nombre}</option>)}</select></label>
       {showForm ? (
@@ -236,7 +246,98 @@ function EnrollmentsView() {
         {enrollments.data?.map((row) => <tr key={row.matricula.id}><td><strong>{row.persona.apellidoPaterno}, {row.persona.nombres}</strong><span>{row.persona.dni}</span></td><td>{row.carreraNombre}<small>{row.planNombre}</small></td><td>{row.periodoNombre}</td><td><span className={`profile-state is-${row.matricula.estado}`}>{row.matricula.estado}</span></td><td><Button onClick={() => setSelected(row)} type="button" variant="ghost"><ClipboardList size={15} />Continuar</Button></td></tr>)}
       </DataTable>
       {selected ? <EnrollmentDetail enrollment={selected} onClose={() => setSelected(null)} /> : null}
+      {showBulk ? (
+        <BulkEnrollmentPanel
+          careers={careers.data ?? []}
+          onClose={() => setShowBulk(false)}
+          periods={periods.data ?? []}
+          plans={plans.data ?? []}
+        />
+      ) : null}
     </section>
+  );
+}
+
+function BulkEnrollmentPanel({
+  careers, onClose, periods, plans,
+}: {
+  careers: Awaited<ReturnType<typeof getCareers>>;
+  onClose: () => void;
+  periods: Awaited<ReturnType<typeof getAcademicPeriods>>;
+  plans: Awaited<ReturnType<typeof getCurriculumPlans>>;
+}) {
+  const queryClient = useQueryClient();
+  const [careerId, setCareerId] = useState('');
+  const [periodId, setPeriodId] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const planId = latestActivePlan(plans, careerId)?.id ?? '';
+  const candidates = useQuery({
+    queryKey: ['operation', 'bulk-candidates', careerId, planId, periodId],
+    queryFn: () => getBulkEnrollmentCandidates({
+      carreraId: careerId, planCurricularId: planId, periodoAcademicoId: periodId,
+    }),
+    enabled: Boolean(careerId && planId && periodId),
+  });
+  const create = useMutation({
+    mutationFn: () => createBulkEnrollments({
+      personaIds: selectedIds, carreraId: careerId,
+      planCurricularId: planId, periodoAcademicoId: periodId,
+    }),
+    onSuccess: async () => {
+      setSelectedIds([]);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['operation', 'enrollments'] }),
+        queryClient.invalidateQueries({ queryKey: ['operation', 'bulk-candidates', careerId, planId, periodId] }),
+      ]);
+    },
+  });
+  return (
+    <aside aria-label="Matrícula masiva" className="operation-detail">
+      <header>
+        <div><p className="eyebrow">Matrículas</p><h2>Matrícula masiva</h2><p>Solo aparecen alumnos activos, inscritos y aún no matriculados en el periodo.</p></div>
+        <Button aria-label="Cerrar matrícula masiva" onClick={onClose} type="button" variant="ghost"><X size={18} /></Button>
+      </header>
+      <div className="operation-form">
+        <FormField htmlFor="bulk-career" label="Carrera">
+          <select className="form-select" id="bulk-career" onChange={(event) => {
+            setCareerId(event.target.value); setPeriodId(''); setSelectedIds([]);
+          }} value={careerId}>
+            <option value="">Seleccionar</option>
+            {careers.filter((item) => item.estado === 'activo').map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
+          </select>
+        </FormField>
+        <FormField htmlFor="bulk-period" label="Periodo">
+          <select className="form-select" id="bulk-period" onChange={(event) => {
+            setPeriodId(event.target.value); setSelectedIds([]);
+          }} value={periodId}>
+            <option value="">Seleccionar</option>
+            {periods.filter((item) => item.carreraId === careerId && item.estado === 'activo').map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
+          </select>
+        </FormField>
+      </div>
+      {candidates.isFetching ? <p>Cargando candidatos…</p> : null}
+      {candidates.isError ? <div className="error-banner">No se pudieron cargar los candidatos.</div> : null}
+      {candidates.data?.data.length === 0 ? <p className="operation-empty">No hay alumnos pendientes para este contexto.</p> : null}
+      {candidates.data?.data.length ? (
+        <section className="roster-section">
+          <h3>Candidatos ({candidates.data.pagination.total})</h3>
+          <div className="roster-list">
+            {candidates.data.data.map((row) => (
+              <label key={row.personaId}>
+                <input checked={selectedIds.includes(row.personaId)} onChange={(event) => setSelectedIds((current) => (
+                  event.target.checked ? [...current, row.personaId] : current.filter((id) => id !== row.personaId)
+                ))} type="checkbox" />
+                <span><strong>{row.apellidoPaterno}, {row.nombres}</strong><small>{row.dni}</small></span>
+              </label>
+            ))}
+          </div>
+          {create.error ? <div className="error-banner">{getApiErrorMessage(create.error, 'No se pudo completar el lote.')}</div> : null}
+          <Button disabled={!selectedIds.length || create.isPending} onClick={() => create.mutate()} type="button">
+            Matricular seleccionados ({selectedIds.length})
+          </Button>
+        </section>
+      ) : null}
+    </aside>
   );
 }
 
