@@ -33,8 +33,7 @@ const navigation: NavigationGroup[] = [
   {
     label: 'Academia',
     items: [
-      { label: 'Carreras', to: '/estructura/carreras', allowed: identityManagers },
-      { label: 'Planes curriculares', to: '/estructura/planes-curriculares', allowed: identityManagers },
+      { label: 'Carreras y planes', to: '/estructura/carreras', allowed: identityManagers },
       { label: 'Cursos', to: '/estructura/cursos', allowed: identityManagers },
       { label: 'Cursos por plan', to: '/estructura/plan-cursos', allowed: identityManagers },
       { label: 'Periodos academicos', to: '/estructura/periodos-academicos', allowed: identityManagers },

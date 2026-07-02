@@ -184,6 +184,7 @@ export type PlanCourse = {
 
 export type AcademicPeriod = {
   id: string;
+  carreraId: string;
   anio: number;
   periodo: 'I' | 'II' | 'III';
   nombre: string;

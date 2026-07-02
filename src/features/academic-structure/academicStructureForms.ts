@@ -10,6 +10,10 @@ export const catalogSchema = z.object({
   estado: z.enum(['activo', 'inactivo']).optional(),
 });
 
+export const careerSchema = catalogSchema.extend({
+  planVersion: text(30),
+});
+
 export const courseSchema = z.object({
   codigo: text(30),
   nombre: text(150),
@@ -38,6 +42,7 @@ export const planCourseSchema = z.object({
 });
 
 export const academicPeriodSchema = z.object({
+  carreraId: z.uuid('Selecciona una carrera'),
   anio: z.number().int().min(1900, 'Año invalido').max(9999, 'Año invalido'),
   periodo: z.enum(['I', 'II', 'III']),
   fechaInicio: z.string().min(1, 'Campo obligatorio'),
@@ -49,6 +54,7 @@ export const academicPeriodSchema = z.object({
 });
 
 export type CatalogValues = z.infer<typeof catalogSchema>;
+export type CareerValues = z.infer<typeof careerSchema>;
 export type CourseValues = z.infer<typeof courseSchema>;
 export type CurriculumPlanValues = z.infer<typeof curriculumPlanSchema>;
 export type PlanCourseValues = z.infer<typeof planCourseSchema>;

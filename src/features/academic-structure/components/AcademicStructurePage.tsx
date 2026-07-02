@@ -1,9 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { BookOpenCheck, CalendarDays, GitBranch, Layers3, ListTree, SquarePen } from 'lucide-react';
-import { useEffect, useMemo } from 'react';
+import { BookOpenCheck, CalendarDays, GitBranch, Layers3, SquarePen } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm, useWatch, type UseFormRegisterReturn } from 'react-hook-form';
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { getApiErrorMessage } from '../../../api/client';
 import type {
   AcademicPeriod,
@@ -18,13 +18,13 @@ import { Input } from '../../../components/ui/Input';
 import {
   academicPeriodSchema,
   catalogSchema,
+  careerSchema,
   courseSchema,
-  curriculumPlanSchema,
   planCourseSchema,
   type AcademicPeriodValues,
   type CatalogValues,
+  type CareerValues,
   type CourseValues,
-  type CurriculumPlanValues,
   type PlanCourseValues,
 } from '../academicStructureForms';
 import {
@@ -41,16 +41,14 @@ import {
   updateAcademicPeriod,
   updateCareer,
   updateCourse,
-  updateCurriculumPlan,
   updatePlanCourse,
 } from '../api/academicStructureApi';
 
-type EntityKey = 'carreras' | 'planes-curriculares' | 'cursos' | 'plan-cursos' | 'periodos-academicos';
+type EntityKey = 'carreras' | 'cursos' | 'plan-cursos' | 'periodos-academicos';
 type Mode = 'list' | 'create' | 'edit';
 
 const entityOptions: Array<{ key: EntityKey; label: string; icon: typeof Layers3 }> = [
-  { key: 'carreras', label: 'Carreras', icon: Layers3 },
-  { key: 'planes-curriculares', label: 'Planes curriculares', icon: ListTree },
+  { key: 'carreras', label: 'Carreras y planes', icon: Layers3 },
   { key: 'cursos', label: 'Cursos', icon: BookOpenCheck },
   { key: 'plan-cursos', label: 'Cursos por plan', icon: GitBranch },
   { key: 'periodos-academicos', label: 'Periodos academicos', icon: CalendarDays },
@@ -60,7 +58,12 @@ const emptyPlanCourse: PlanCourseValues = {
   planCurricularId: '', cursoId: '', ciclo: 1, orden: 1, estado: 'activo', prerequisiteIds: [],
 };
 const emptyAcademicPeriod: AcademicPeriodValues = {
-  anio: new Date().getFullYear(), periodo: 'I', fechaInicio: '', fechaFin: '', estado: 'activo',
+  carreraId: '',
+  anio: new Date().getFullYear(),
+  periodo: 'I',
+  fechaInicio: '',
+  fechaFin: '',
+  estado: 'activo',
 };
 
 function nameById<T extends { id: string; codigo?: string; nombre?: string }>(rows: T[] | undefined, id: string) {
@@ -90,7 +93,7 @@ export function AcademicStructurePage() {
           <h1>{entityOptions.find((option) => option.key === entity)?.label}</h1>
           <p>Catalogos, mallas por ciclo, prerequisitos y periodos academicos.</p>
         </div>
-        {mode === 'list' ? (
+        {mode === 'list' && entity !== 'plan-cursos' ? (
           <Button asChild><Link to={`/estructura/${entity}/nueva`}>Nuevo registro</Link></Button>
         ) : null}
       </header>
@@ -111,81 +114,156 @@ export function AcademicStructurePage() {
         })}
       </nav>
 
-      {entity === 'carreras' ? <CatalogEntity id={id} mode={mode} /> : null}
+      {entity === 'carreras' ? <CareersPlansEntity id={id} mode={mode} /> : null}
       {entity === 'cursos' ? <CourseEntity id={id} mode={mode} /> : null}
-      {entity === 'planes-curriculares' ? <CurriculumPlansEntity id={id} mode={mode} /> : null}
       {entity === 'plan-cursos' ? <PlanCoursesEntity id={id} mode={mode} /> : null}
       {entity === 'periodos-academicos' ? <AcademicPeriodsEntity id={id} mode={mode} /> : null}
     </main>
   );
 }
 
-function CatalogEntity({ id, mode }: { id?: string; mode: Mode }) {
+function CareersPlansEntity({ id, mode }: { id?: string; mode: Mode }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const queryKey = ['academic', 'careers'];
-  const rows = useQuery({
-    queryKey,
-    queryFn: getCareers,
+  const [newPlanCareerId, setNewPlanCareerId] = useState<string | null>(null);
+  const [newPlanVersion, setNewPlanVersion] = useState(String(new Date().getFullYear()));
+  const careers = useQuery({ queryKey: ['academic', 'careers'], queryFn: getCareers, staleTime: 30_000 });
+  const plans = useQuery({
+    queryKey: ['academic', 'plans'],
+    queryFn: () => getCurriculumPlans(),
     staleTime: 30_000,
   });
-  const current = rows.data?.find((row) => row.id === id);
-  const form = useForm<CatalogValues>({
+  const current = careers.data?.find((row) => row.id === id);
+  const editForm = useForm<CatalogValues>({
     resolver: zodResolver(catalogSchema),
     defaultValues: { codigo: '', nombre: '', descripcion: '', estado: 'activo' },
   });
   useEffect(() => {
-    form.reset(current ? {
+    editForm.reset(current ? {
       codigo: current.codigo,
       nombre: current.nombre,
       descripcion: current.descripcion ?? undefined,
       estado: current.estado,
     } : { codigo: '', nombre: '', descripcion: '', estado: 'activo' });
-  }, [current, form, id, mode]);
-  const mutation = useMutation({
-    mutationFn: (values: CatalogValues) => {
-      return mode === 'edit' && id
-        ? updateCareer(id, values)
-        : createCareer(values);
+  }, [current, editForm, id, mode]);
+  const createForm = useForm<CareerValues>({
+    resolver: zodResolver(careerSchema),
+    defaultValues: {
+      codigo: '',
+      nombre: '',
+      descripcion: '',
+      estado: 'activo',
+      planVersion: String(new Date().getFullYear()),
+    },
+  });
+  const saveCareer = useMutation({
+    mutationFn: async (values: CatalogValues | CareerValues) => {
+      if (mode === 'edit' && id) await updateCareer(id, values);
+      else await createCareer(values as CareerValues);
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['academic', 'careers'] }),
+        queryClient.invalidateQueries({ queryKey: ['academic', 'plans'] }),
+      ]);
       navigate('/estructura/carreras');
     },
   });
+  const createPlan = useMutation({
+    mutationFn: ({ carreraId, version }: { carreraId: string; version: string }) => (
+      createCurriculumPlan({ carreraId, version })
+    ),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['academic', 'plans'] });
+      setNewPlanCareerId(null);
+    },
+  });
 
-  if (mode !== 'list') {
+  if (mode === 'create') {
     return (
-      <CatalogForm
-        error={mutation.error}
-        form={form}
-        isPending={mutation.isPending}
+      <EntityForm
+        error={saveCareer.error}
+        isPending={saveCareer.isPending}
         mode={mode}
         onCancel={() => navigate('/estructura/carreras')}
-        onSubmit={(values) => mutation.mutate(values)}
+        onSubmit={createForm.handleSubmit((values) => saveCareer.mutate(values))}
+        title="carrera y plan inicial"
+      >
+        <FormField error={createForm.formState.errors.codigo?.message} htmlFor="codigo" label="Codigo de carrera">
+          <Input id="codigo" {...createForm.register('codigo')} />
+        </FormField>
+        <FormField error={createForm.formState.errors.nombre?.message} htmlFor="nombre" label="Nombre de carrera">
+          <Input id="nombre" {...createForm.register('nombre')} />
+        </FormField>
+        <FormField error={createForm.formState.errors.descripcion?.message} htmlFor="descripcion" label="Descripcion">
+          <Input id="descripcion" {...createForm.register('descripcion')} />
+        </FormField>
+        <FormField error={createForm.formState.errors.planVersion?.message} htmlFor="planVersion" label="Version del plan inicial">
+          <Input id="planVersion" {...createForm.register('planVersion')} />
+        </FormField>
+      </EntityForm>
+    );
+  }
+
+  if (mode === 'edit') {
+    return (
+      <CatalogForm
+        error={saveCareer.error}
+        form={editForm}
+        isPending={saveCareer.isPending}
+        mode={mode}
+        onCancel={() => navigate('/estructura/carreras')}
+        onSubmit={(values) => saveCareer.mutate(values)}
         title="carrera"
       />
     );
   }
 
   return (
-    <AcademicTable
-      columns={['Codigo', 'Nombre', 'Descripcion', 'Estado', 'Acciones']}
-      empty="Aun no hay registros."
-      isError={rows.isError}
-      isPending={rows.isPending}
-      onRetry={() => void rows.refetch()}
-    >
-      {rows.data?.map((row) => (
-        <tr key={row.id}>
-          <td><span className="document-value">{row.codigo}</span></td>
-          <td><strong>{row.nombre}</strong></td>
-          <td>{row.descripcion ?? 'Sin descripcion'}</td>
-          <td><StatusBadge active={row.estado === 'activo'} /></td>
-          <td className="table-actions"><EditButton to={`/estructura/carreras/${row.id}`} /></td>
-        </tr>
-      ))}
-    </AcademicTable>
+    <div className="career-plan-list">
+      {careers.isPending || plans.isPending ? <section className="table-state">Cargando informacion...</section> : null}
+      {careers.isError || plans.isError ? <section className="table-state is-error">No pudimos cargar carreras y planes.</section> : null}
+      {careers.data?.map((career) => {
+        const careerPlans = plans.data?.filter((plan) => plan.carreraId === career.id) ?? [];
+        return (
+          <section className="career-plan-group" key={career.id}>
+            <header>
+              <div>
+                <span className="document-value">{career.codigo}</span>
+                <h2>{career.nombre}</h2>
+                <p>{career.descripcion ?? 'Sin descripcion'}</p>
+              </div>
+              <div className="table-actions">
+                <EditButton to={`/estructura/carreras/${career.id}`} />
+                <Button onClick={() => setNewPlanCareerId(career.id)} type="button" variant="secondary">Nueva version</Button>
+              </div>
+            </header>
+            {newPlanCareerId === career.id ? (
+              <form
+                className="inline-plan-form"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  createPlan.mutate({ carreraId: career.id, version: newPlanVersion });
+                }}
+              >
+                <Input aria-label="Version del nuevo plan" onChange={(event) => setNewPlanVersion(event.target.value)} value={newPlanVersion} />
+                <Button disabled={createPlan.isPending} type="submit">Crear plan</Button>
+                <Button onClick={() => setNewPlanCareerId(null)} type="button" variant="ghost">Cancelar</Button>
+              </form>
+            ) : null}
+            <div className="career-plan-versions">
+              {careerPlans.map((plan) => (
+                <Link key={plan.id} to={`/estructura/plan-cursos?planId=${plan.id}`}>
+                  <strong>{plan.nombre}</strong>
+                  <span>Version {plan.version}</span>
+                  <StatusBadge active={plan.estado === 'activo'} />
+                </Link>
+              ))}
+            </div>
+          </section>
+        );
+      })}
+    </div>
   );
 }
 
@@ -248,93 +326,37 @@ function CourseEntity({ id, mode }: { id?: string; mode: Mode }) {
   );
 }
 
-function CurriculumPlansEntity({ id, mode }: { id?: string; mode: Mode }) {
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const plans = useQuery({ queryKey: ['academic', 'plans'], queryFn: getCurriculumPlans, staleTime: 30_000 });
-  const careers = useQuery({ queryKey: ['academic', 'careers'], queryFn: getCareers, staleTime: 60_000 });
-  const current = plans.data?.find((row) => row.id === id);
-  const form = useForm<CurriculumPlanValues>({
-    resolver: zodResolver(curriculumPlanSchema),
-    defaultValues: { carreraId: '', codigo: '', nombre: '', version: '', estado: 'activo' },
-  });
-  useEffect(() => {
-    form.reset(current
-      ? { ...current }
-      : { carreraId: '', codigo: '', nombre: '', version: '', estado: 'activo' });
-  }, [current, form, id, mode]);
-  const mutation = useMutation({
-    mutationFn: (values: CurriculumPlanValues) => (
-      mode === 'edit' && id
-        ? updateCurriculumPlan(id, { nombre: values.nombre, version: values.version, estado: values.estado })
-        : createCurriculumPlan(values)
-    ),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['academic', 'plans'] });
-      navigate('/estructura/planes-curriculares');
-    },
-  });
-
-  if (mode !== 'list') {
-    return (
-      <EntityForm
-        error={mutation.error}
-        isPending={mutation.isPending}
-        mode={mode}
-        onCancel={() => navigate('/estructura/planes-curriculares')}
-        onSubmit={form.handleSubmit((values) => mutation.mutate(values))}
-        title="plan curricular"
-      >
-        <FormField error={form.formState.errors.carreraId?.message} htmlFor="carreraId" label="Carrera">
-          <select className="form-select" disabled={mode === 'edit'} id="carreraId" {...form.register('carreraId')}>
-            <option value="">Seleccionar</option>
-            {careers.data?.map((career) => <option key={career.id} value={career.id}>{career.codigo} - {career.nombre}</option>)}
-          </select>
-        </FormField>
-        <FormField error={form.formState.errors.codigo?.message} htmlFor="codigo" label="Codigo">
-          <Input disabled={mode === 'edit'} id="codigo" {...form.register('codigo')} />
-        </FormField>
-        <FormField error={form.formState.errors.nombre?.message} htmlFor="nombre" label="Nombre">
-          <Input id="nombre" {...form.register('nombre')} />
-        </FormField>
-        <FormField error={form.formState.errors.version?.message} htmlFor="version" label="Version">
-          <Input id="version" {...form.register('version')} />
-        </FormField>
-        {mode === 'edit' ? <StateSelect register={form.register('estado')} /> : null}
-      </EntityForm>
-    );
-  }
-
-  return (
-    <AcademicTable columns={['Codigo', 'Plan', 'Carrera', 'Version', 'Estado', 'Acciones']} empty="Aun no hay planes curriculares." isError={plans.isError} isPending={plans.isPending} onRetry={() => void plans.refetch()}>
-      {plans.data?.map((plan) => (
-        <tr key={plan.id}>
-          <td><span className="document-value">{plan.codigo}</span></td>
-          <td><strong>{plan.nombre}</strong></td>
-          <td>{nameById(careers.data, plan.carreraId)}</td>
-          <td>{plan.version}</td>
-          <td><StatusBadge active={plan.estado === 'activo'} /></td>
-          <td className="table-actions"><EditButton to={`/estructura/planes-curriculares/${plan.id}`} /></td>
-        </tr>
-      ))}
-    </AcademicTable>
-  );
-}
-
 function PlanCoursesEntity({ id, mode }: { id?: string; mode: Mode }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const planCourses = useQuery({ queryKey: ['academic', 'plan-courses'], queryFn: getPlanCourses, staleTime: 30_000 });
-  const plans = useQuery({ queryKey: ['academic', 'plans'], queryFn: getCurriculumPlans, staleTime: 60_000 });
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedPlanFromUrl = searchParams.get('planId') ?? '';
+  const selectedCareerFromUrl = searchParams.get('careerId') ?? '';
+  const planCourses = useQuery({
+    queryKey: ['academic', 'plan-courses'],
+    queryFn: () => getPlanCourses(),
+    staleTime: 30_000,
+  });
+  const plans = useQuery({
+    queryKey: ['academic', 'plans'],
+    queryFn: () => getCurriculumPlans(),
+    staleTime: 60_000,
+  });
+  const careers = useQuery({ queryKey: ['academic', 'careers'], queryFn: getCareers, staleTime: 60_000 });
   const courses = useQuery({ queryKey: ['academic', 'courses'], queryFn: getCourses, staleTime: 60_000 });
+  const selectedPlan = plans.data?.find((plan) => plan.id === selectedPlanFromUrl);
+  const selectedCareerId = selectedPlan?.carreraId ?? selectedCareerFromUrl;
+  const planOptions = plans.data?.filter((plan) => !selectedCareerId || plan.carreraId === selectedCareerId) ?? [];
   const current = planCourses.data?.find((row) => row.id === id);
   const form = useForm<PlanCourseValues>({
     resolver: zodResolver(planCourseSchema),
     defaultValues: emptyPlanCourse,
   });
   useEffect(() => {
-    form.reset(current ? { ...current, prerequisiteIds: current.prerequisiteIds ?? [] } : emptyPlanCourse);
-  }, [current, form, id, mode]);
+    form.reset(current
+      ? { ...current, prerequisiteIds: current.prerequisiteIds ?? [] }
+      : { ...emptyPlanCourse, planCurricularId: selectedPlanFromUrl });
+  }, [current, form, id, mode, selectedPlanFromUrl]);
   const selectedPlanId = useWatch({ control: form.control, name: 'planCurricularId' });
   const selectedCycle = useWatch({ control: form.control, name: 'ciclo' });
   const selectedPrerequisites = useWatch({ control: form.control, name: 'prerequisiteIds' }) ?? [];
@@ -359,7 +381,7 @@ function PlanCoursesEntity({ id, mode }: { id?: string; mode: Mode }) {
     ),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['academic', 'plan-courses'] });
-      navigate('/estructura/plan-cursos');
+      navigate(`/estructura/plan-cursos?planId=${selectedPlanId || selectedPlanFromUrl}`);
     },
   });
 
@@ -438,35 +460,111 @@ function PlanCoursesEntity({ id, mode }: { id?: string; mode: Mode }) {
     );
   }
 
-  const rows = [...(planCourses.data ?? [])].sort((a, b) => a.ciclo - b.ciclo || a.orden - b.orden);
+  const rows = (planCourses.data ?? [])
+    .filter((row) => row.planCurricularId === selectedPlanFromUrl)
+    .sort((a, b) => a.ciclo - b.ciclo || a.orden - b.orden);
+  const cycles = [...new Set(rows.map((row) => row.ciclo))];
   return (
-    <AcademicTable columns={['Plan', 'Curso', 'Ciclo', 'Orden', 'Prerrequisitos', 'Estado', 'Acciones']} empty="Aun no hay cursos asignados a planes." isError={planCourses.isError} isPending={planCourses.isPending} onRetry={() => void planCourses.refetch()}>
-      {rows.map((row) => (
-        <tr key={row.id}>
-          <td>{nameById(plans.data, row.planCurricularId)}</td>
-          <td><strong>{nameById(courses.data, row.cursoId)}</strong></td>
-          <td>{row.ciclo}</td>
-          <td>{row.orden}</td>
-          <td>
-            {row.prerequisiteIds.length > 0
-              ? row.prerequisiteIds.map((prerequisiteId) => {
-                const prerequisite = planCourses.data?.find((item) => item.id === prerequisiteId);
-                return prerequisite ? nameById(courses.data, prerequisite.cursoId) : 'No encontrado';
-              }).join(', ')
-              : 'Ninguno'}
-          </td>
-          <td><StatusBadge active={row.estado === 'activo'} /></td>
-          <td className="table-actions"><EditButton to={`/estructura/plan-cursos/${row.id}`} /></td>
-        </tr>
-      ))}
-    </AcademicTable>
+    <div className="curriculum-view">
+      <section className="curriculum-toolbar">
+        <FormField htmlFor="career-filter" label="Carrera">
+          <select
+            className="form-select"
+            id="career-filter"
+            onChange={(event) => setSearchParams(event.target.value ? { careerId: event.target.value } : {})}
+            value={selectedCareerId}
+          >
+            <option value="">Seleccionar carrera</option>
+            {careers.data?.map((career) => (
+              <option key={career.id} value={career.id}>{career.nombre}</option>
+            ))}
+          </select>
+        </FormField>
+        <FormField htmlFor="plan-filter" label="Plan curricular">
+          <select
+            className="form-select"
+            disabled={!selectedCareerId}
+            id="plan-filter"
+            onChange={(event) => setSearchParams(event.target.value
+              ? { careerId: selectedCareerId, planId: event.target.value }
+              : { careerId: selectedCareerId })}
+            value={selectedPlanFromUrl}
+          >
+            <option value="">Seleccionar plan</option>
+            {planOptions.map((plan) => (
+              <option key={plan.id} value={plan.id}>{plan.nombre} · version {plan.version}</option>
+            ))}
+          </select>
+        </FormField>
+        {selectedPlanFromUrl ? (
+          <Button asChild>
+            <Link to={`/estructura/plan-cursos/nueva?planId=${selectedPlanFromUrl}`}>Agregar curso</Link>
+          </Button>
+        ) : <Button disabled type="button">Agregar curso</Button>}
+      </section>
+
+      {!selectedPlanFromUrl ? (
+        <section className="table-state">
+          <h2>Selecciona una carrera y un plan.</h2>
+          <p>La malla curricular se organizara por ciclos.</p>
+        </section>
+      ) : null}
+      {selectedPlanFromUrl && rows.length === 0 && !planCourses.isPending ? (
+        <section className="table-state">
+          <h2>Este plan aun no tiene cursos.</h2>
+          <p>Agrega el primer curso para comenzar la malla.</p>
+        </section>
+      ) : null}
+      {selectedPlanFromUrl && rows.length > 0 ? (
+        <div className="curriculum-cycles">
+          {cycles.map((cycle) => (
+            <section className="curriculum-cycle" key={cycle}>
+              <header>
+                <span>Ciclo</span>
+                <strong>{cycle}</strong>
+              </header>
+              <table>
+                <thead>
+                  <tr><th>Curso</th><th>Tipo</th><th>Prerrequisitos</th><th>Acciones</th></tr>
+                </thead>
+                <tbody>
+                  {rows.filter((row) => row.ciclo === cycle).map((row) => {
+                    const course = courses.data?.find((item) => item.id === row.cursoId);
+                    const prerequisites = row.prerequisiteIds.map((prerequisiteId) => {
+                      const prerequisite = planCourses.data?.find((item) => item.id === prerequisiteId);
+                      return prerequisite ? nameById(courses.data, prerequisite.cursoId) : 'No encontrado';
+                    });
+                    return (
+                      <tr key={row.id}>
+                        <td><strong>{course?.nombre ?? 'No encontrado'}</strong><span>{course?.codigo}</span></td>
+                        <td className="text-capitalize">{course?.tipo}</td>
+                        <td>{prerequisites.length ? prerequisites.join(', ') : 'Ninguno'}</td>
+                        <td><EditButton to={`/estructura/plan-cursos/${row.id}?planId=${selectedPlanFromUrl}`} /></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </section>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
 function AcademicPeriodsEntity({ id, mode }: { id?: string; mode: Mode }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const periods = useQuery({ queryKey: ['academic', 'periods'], queryFn: getAcademicPeriods, staleTime: 30_000 });
+  const [searchParams, setSearchParams] = useSearchParams();
+  const careerFilter = searchParams.get('careerId') ?? '';
+  const yearFilter = Number(searchParams.get('year')) || undefined;
+  const periods = useQuery({
+    queryKey: ['academic', 'periods', careerFilter, yearFilter],
+    queryFn: () => getAcademicPeriods({ carreraId: careerFilter || undefined, anio: yearFilter }),
+    staleTime: 30_000,
+  });
+  const careers = useQuery({ queryKey: ['academic', 'careers'], queryFn: getCareers, staleTime: 60_000 });
   const current = periods.data?.find((row) => row.id === id);
   const form = useForm<AcademicPeriodValues>({
     resolver: zodResolver(academicPeriodSchema),
@@ -474,6 +572,7 @@ function AcademicPeriodsEntity({ id, mode }: { id?: string; mode: Mode }) {
   });
   useEffect(() => {
     form.reset(current ? {
+      carreraId: current.carreraId,
       anio: current.anio,
       periodo: current.periodo,
       fechaInicio: current.fechaInicio,
@@ -483,6 +582,8 @@ function AcademicPeriodsEntity({ id, mode }: { id?: string; mode: Mode }) {
   }, [current, form, id, mode]);
   const year = useWatch({ control: form.control, name: 'anio' });
   const periodNumber = useWatch({ control: form.control, name: 'periodo' });
+  const selectedCareerId = useWatch({ control: form.control, name: 'carreraId' });
+  const selectedCareerName = careers.data?.find((career) => career.id === selectedCareerId)?.nombre ?? '';
   const mutation = useMutation({
     mutationFn: (values: AcademicPeriodValues) => (
       mode === 'edit' && id
@@ -498,6 +599,14 @@ function AcademicPeriodsEntity({ id, mode }: { id?: string; mode: Mode }) {
   if (mode !== 'list') {
     return (
       <EntityForm error={mutation.error} isPending={mutation.isPending} mode={mode} onCancel={() => navigate('/estructura/periodos-academicos')} onSubmit={form.handleSubmit((values) => mutation.mutate(values))} title="periodo academico">
+        <FormField error={form.formState.errors.carreraId?.message} htmlFor="carreraId" label="Carrera">
+          <select className="form-select" id="carreraId" {...form.register('carreraId')}>
+            <option value="">Seleccionar carrera</option>
+            {careers.data?.map((career) => (
+              <option key={career.id} value={career.id}>{career.nombre}</option>
+            ))}
+          </select>
+        </FormField>
         <FormField error={form.formState.errors.anio?.message} htmlFor="anio" label="Año">
           <Input id="anio" min={1900} max={9999} type="number" {...form.register('anio', { valueAsNumber: true })} />
         </FormField>
@@ -509,7 +618,7 @@ function AcademicPeriodsEntity({ id, mode }: { id?: string; mode: Mode }) {
           </select>
         </FormField>
         <FormField htmlFor="nombre" label="Nombre">
-          <Input disabled id="nombre" value={`${year || ''} - ${periodNumber}`} />
+          <Input disabled id="nombre" value={`${selectedCareerName} ${year || ''}-${periodNumber}`.trim()} />
         </FormField>
         <FormField error={form.formState.errors.fechaInicio?.message} htmlFor="fechaInicio" label="Fecha inicio">
           <Input id="fechaInicio" type="date" {...form.register('fechaInicio')} />
@@ -523,19 +632,54 @@ function AcademicPeriodsEntity({ id, mode }: { id?: string; mode: Mode }) {
   }
 
   return (
-    <AcademicTable columns={['Año', 'Periodo', 'Nombre', 'Inicio', 'Fin', 'Estado', 'Acciones']} empty="Aun no hay periodos academicos." isError={periods.isError} isPending={periods.isPending} onRetry={() => void periods.refetch()}>
-      {periods.data?.map((period: AcademicPeriod) => (
-        <tr key={period.id}>
-          <td><span className="document-value">{period.anio}</span></td>
-          <td>{period.periodo}</td>
-          <td><strong>{period.nombre}</strong></td>
-          <td>{period.fechaInicio}</td>
-          <td>{period.fechaFin}</td>
-          <td><StatusBadge active={period.estado === 'activo'} /></td>
-          <td className="table-actions"><EditButton to={`/estructura/periodos-academicos/${period.id}`} /></td>
-        </tr>
-      ))}
-    </AcademicTable>
+    <div className="periods-view">
+      <section className="curriculum-toolbar">
+        <FormField htmlFor="period-career-filter" label="Carrera">
+          <select
+            className="form-select"
+            id="period-career-filter"
+            onChange={(event) => {
+              const next = new URLSearchParams(searchParams);
+              if (event.target.value) next.set('careerId', event.target.value);
+              else next.delete('careerId');
+              setSearchParams(next);
+            }}
+            value={careerFilter}
+          >
+            <option value="">Todas las carreras</option>
+            {careers.data?.map((career) => <option key={career.id} value={career.id}>{career.nombre}</option>)}
+          </select>
+        </FormField>
+        <FormField htmlFor="period-year-filter" label="Año">
+          <Input
+            id="period-year-filter"
+            min={1900}
+            onChange={(event) => {
+              const next = new URLSearchParams(searchParams);
+              if (event.target.value) next.set('year', event.target.value);
+              else next.delete('year');
+              setSearchParams(next);
+            }}
+            type="number"
+            value={yearFilter ?? ''}
+          />
+        </FormField>
+      </section>
+      <AcademicTable columns={['Carrera', 'Año', 'Periodo', 'Nombre', 'Inicio', 'Fin', 'Estado', 'Acciones']} empty="Aun no hay periodos academicos." isError={periods.isError} isPending={periods.isPending} onRetry={() => void periods.refetch()}>
+        {periods.data?.map((period: AcademicPeriod) => (
+          <tr key={period.id}>
+            <td>{nameById(careers.data, period.carreraId)}</td>
+            <td><span className="document-value">{period.anio}</span></td>
+            <td>{period.periodo}</td>
+            <td><strong>{period.nombre}</strong></td>
+            <td>{period.fechaInicio}</td>
+            <td>{period.fechaFin}</td>
+            <td><StatusBadge active={period.estado === 'activo'} /></td>
+            <td className="table-actions"><EditButton to={`/estructura/periodos-academicos/${period.id}`} /></td>
+          </tr>
+        ))}
+      </AcademicTable>
+    </div>
   );
 }
 

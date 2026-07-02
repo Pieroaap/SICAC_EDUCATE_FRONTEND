@@ -20,6 +20,7 @@ export function MainLayout() {
     group.label !== 'Espacio de trabajo'
     && group.items.some((item) => location.pathname === item.to || location.pathname.startsWith(`${item.to}/`))
   ))?.label;
+  const isGroupOpen = (label: string) => openGroups[label] ?? activeGroupLabel === label;
 
   return (
     <div className="workspace">
@@ -47,11 +48,11 @@ export function MainLayout() {
             <div className="sidebar__group" key={group.label}>
               {group.label === 'Espacio de trabajo' ? <p>{group.label}</p> : (
                 <button
-                  aria-expanded={Boolean(openGroups[group.label] || activeGroupLabel === group.label)}
+                  aria-expanded={isGroupOpen(group.label)}
                   className="sidebar__group-toggle"
                   onClick={() => setOpenGroups((current) => ({
                     ...current,
-                    [group.label]: !current[group.label],
+                    [group.label]: !(current[group.label] ?? activeGroupLabel === group.label),
                   }))}
                   type="button"
                 >
@@ -59,7 +60,7 @@ export function MainLayout() {
                   <ChevronDown aria-hidden="true" size={16} />
                 </button>
               )}
-              {(group.label === 'Espacio de trabajo' || openGroups[group.label] || activeGroupLabel === group.label) ? (
+              {(group.label === 'Espacio de trabajo' || isGroupOpen(group.label)) ? (
                 <div className="sidebar__group-items">
                   {group.items.map((item) => (
                     <NavLink
