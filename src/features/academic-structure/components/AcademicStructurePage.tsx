@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookOpenCheck, CalendarDays, GitBranch, Layers3, SquarePen } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm, useWatch, type UseFormRegisterReturn } from 'react-hook-form';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { getApiErrorMessage } from '../../../api/client';
@@ -127,6 +127,8 @@ function CareersPlansEntity({ id, mode }: { id?: string; mode: Mode }) {
   const navigate = useNavigate();
   const [newPlanCareerId, setNewPlanCareerId] = useState<string | null>(null);
   const [newPlanVersion, setNewPlanVersion] = useState(String(new Date().getFullYear()));
+  const [planYearError, setPlanYearError] = useState<string | null>(null);
+  const planDialogRef = useRef<HTMLDialogElement>(null);
   const careers = useQuery({ queryKey: ['academic', 'careers'], queryFn: getCareers, staleTime: 30_000 });
   const plans = useQuery({
     queryKey: ['academic', 'plans'],
@@ -134,6 +136,10 @@ function CareersPlansEntity({ id, mode }: { id?: string; mode: Mode }) {
     staleTime: 30_000,
   });
   const current = careers.data?.find((row) => row.id === id);
+  const selectedPlanCareer = careers.data?.find((career) => career.id === newPlanCareerId);
+  useEffect(() => {
+    if (newPlanCareerId && !planDialogRef.current?.open) planDialogRef.current?.showModal();
+  }, [newPlanCareerId]);
   const editForm = useForm<CatalogValues>({
     resolver: zodResolver(catalogSchema),
     defaultValues: { codigo: '', nombre: '', descripcion: '', estado: 'activo' },
@@ -175,7 +181,7 @@ function CareersPlansEntity({ id, mode }: { id?: string; mode: Mode }) {
     ),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['academic', 'plans'] });
-      setNewPlanCareerId(null);
+      planDialogRef.current?.close();
     },
   });
 
@@ -229,28 +235,26 @@ function CareersPlansEntity({ id, mode }: { id?: string; mode: Mode }) {
           <section className="career-plan-group" key={career.id}>
             <header>
               <div>
-                <span className="document-value">{career.codigo}</span>
                 <h2>{career.nombre}</h2>
+                <span className="career-plan-code">{career.codigo}</span>
                 <p>{career.descripcion ?? 'Sin descripcion'}</p>
               </div>
-              <div className="table-actions">
+              <div className="career-plan-actions">
                 <EditButton to={`/estructura/carreras/${career.id}`} />
-                <Button onClick={() => setNewPlanCareerId(career.id)} type="button" variant="secondary">Nueva version</Button>
+                <Button
+                  onClick={() => {
+                    createPlan.reset();
+                    setPlanYearError(null);
+                    setNewPlanVersion(String(new Date().getFullYear()));
+                    setNewPlanCareerId(career.id);
+                  }}
+                  type="button"
+                  variant="secondary"
+                >
+                  Nueva malla
+                </Button>
               </div>
             </header>
-            {newPlanCareerId === career.id ? (
-              <form
-                className="inline-plan-form"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  createPlan.mutate({ carreraId: career.id, version: newPlanVersion });
-                }}
-              >
-                <Input aria-label="Version del nuevo plan" onChange={(event) => setNewPlanVersion(event.target.value)} value={newPlanVersion} />
-                <Button disabled={createPlan.isPending} type="submit">Crear plan</Button>
-                <Button onClick={() => setNewPlanCareerId(null)} type="button" variant="ghost">Cancelar</Button>
-              </form>
-            ) : null}
             <div className="career-plan-versions">
               {careerPlans.map((plan) => (
                 <Link key={plan.id} to={`/estructura/plan-cursos?planId=${plan.id}`}>
@@ -263,6 +267,78 @@ function CareersPlansEntity({ id, mode }: { id?: string; mode: Mode }) {
           </section>
         );
       })}
+      <dialog
+        className="curriculum-dialog"
+        onCancel={(event) => {
+          event.preventDefault();
+          planDialogRef.current?.close();
+        }}
+        onClose={() => {
+          setNewPlanCareerId(null);
+          setPlanYearError(null);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            planDialogRef.current?.close();
+          }
+        }}
+        ref={planDialogRef}
+      >
+        <form
+          method="dialog"
+          noValidate
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!/^[0-9]{4}$/.test(newPlanVersion) || Number(newPlanVersion) < 1900) {
+              setPlanYearError('Ingresa un año válido de cuatro dígitos.');
+              return;
+            }
+            if (newPlanCareerId) createPlan.mutate({ carreraId: newPlanCareerId, version: newPlanVersion });
+          }}
+        >
+          <header>
+            <p className="eyebrow">Plan curricular</p>
+            <h2>Nueva malla curricular</h2>
+            <p>Crea una nueva versión sin modificar las mallas anteriores.</p>
+          </header>
+          <div className="curriculum-dialog__fields">
+            <FormField htmlFor="dialog-career" label="Carrera">
+              <Input disabled id="dialog-career" value={selectedPlanCareer?.nombre ?? ''} />
+            </FormField>
+            <FormField error={planYearError ?? undefined} htmlFor="dialog-plan-year" label="Malla">
+              <Input
+                id="dialog-plan-year"
+                inputMode="numeric"
+                max={9999}
+                min={1900}
+                onChange={(event) => {
+                  setNewPlanVersion(event.target.value);
+                  setPlanYearError(null);
+                }}
+                type="number"
+                value={newPlanVersion}
+              />
+            </FormField>
+          </div>
+          {createPlan.error ? (
+            <div className="error-banner">{getApiErrorMessage(createPlan.error, 'No se pudo crear la malla.')}</div>
+          ) : null}
+          <div className="form-actions">
+            <Button
+              disabled={createPlan.isPending}
+              onClick={() => planDialogRef.current?.close()}
+              type="button"
+              variant="secondary"
+            >
+              Cancelar
+            </Button>
+            <Button disabled={createPlan.isPending} type="submit">
+              {createPlan.isPending ? 'Creando...' : 'Crear malla'}
+            </Button>
+          </div>
+        </form>
+      </dialog>
     </div>
   );
 }
