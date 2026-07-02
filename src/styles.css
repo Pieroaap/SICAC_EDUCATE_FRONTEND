@@ -1099,6 +1099,17 @@ button:disabled { cursor: default; }
   gap: 0.55rem;
 }
 .operation-form__actions .error-banner { margin-right: auto; }
+.operation-period-filter { width: min(100%, 320px); }
+.roster-section { display: grid; gap: 0.75rem; margin-top: 1rem; padding: 1rem; border: 1px solid var(--line); border-radius: 12px; background: var(--canvas); }
+.roster-section h3 { margin: 0; }
+.roster-list { display: grid; gap: 0.35rem; max-height: 280px; overflow: auto; }
+.roster-list label, .roster-row { min-height: 52px; display: flex; align-items: center; gap: 0.7rem; padding: 0.55rem 0.65rem; border-radius: 8px; background: var(--surface); }
+.roster-list label { cursor: pointer; }
+.roster-list input { width: 18px; height: 18px; accent-color: #c41e3a; }
+.roster-list span { flex: 1; min-width: 0; }
+.roster-list strong, .roster-list small { display: block; }
+.roster-list strong { color: var(--ink); font-size: 0.78rem; }
+.roster-list small { margin-top: 0.15rem; color: var(--ink-muted); font-size: 0.7rem; text-transform: capitalize; }
 .student-search { position: relative; }
 .student-search__results {
   position: absolute;

@@ -15,7 +15,6 @@ export const enrollmentSchema = z.object({
   carreraId: uuid('Selecciona una carrera'),
   planCurricularId: uuid('Selecciona un plan'),
   periodoAcademicoId: uuid('Selecciona un periodo'),
-  fechaMatricula: z.string().min(1, 'Campo obligatorio'),
 });
 
 export const authorizationSchema = z.object({

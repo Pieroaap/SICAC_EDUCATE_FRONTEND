@@ -14,7 +14,6 @@ describe('formularios de operación académica', () => {
       carreraId: id,
       planCurricularId: id,
       periodoAcademicoId: id,
-      fechaMatricula: '2026-07-02',
     });
     expect(result.success).toBe(true);
   });

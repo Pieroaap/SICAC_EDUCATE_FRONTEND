@@ -191,7 +191,7 @@ export type AcademicPeriod = {
   nombre: string;
   fechaInicio: string;
   fechaFin: string;
-  estado: ActiveState;
+  estado: 'activo' | 'culminado';
 };
 
 export type ScheduledCourse = {
@@ -269,4 +269,17 @@ export type PrerequisiteAuthorization = {
   cursoNombre: string;
   seccion: string;
   periodoNombre: string;
+};
+
+export type ScheduledCourseCandidate = {
+  matriculaId: string;
+  personaId: string;
+  dni: string;
+  nombres: string;
+  apellidoPaterno: string;
+  apellidoMaterno: string | null;
+  inscripcion: {
+    id: string;
+    estado: 'activo' | 'retirado' | 'completado' | 'anulado';
+  } | null;
 };

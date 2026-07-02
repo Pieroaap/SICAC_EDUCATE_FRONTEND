@@ -4,6 +4,7 @@ import type {
   CourseEnrollment,
   PrerequisiteAuthorization,
   ScheduledCourse,
+  ScheduledCourseCandidate,
 } from '../../../api/types';
 
 export const getScheduledCourses = async (filters?: {
@@ -20,7 +21,7 @@ export const getEnrollments = async (filters?: {
 
 export const createEnrollment = async (input: {
   personaId: string; carreraId: string; planCurricularId: string;
-  periodoAcademicoId: string; fechaMatricula: string;
+  periodoAcademicoId: string;
 }) => (await api.post('/matriculas/carrera', input)).data;
 
 export const getEnrollmentCourses = async (id: string) =>
@@ -42,3 +43,15 @@ export const resolveAuthorization = async (
   id: string,
   estado: 'aprobada' | 'rechazada',
 ) => (await api.patch(`/autorizaciones-prerrequisito/${id}/resolucion`, { estado })).data;
+
+export const getScheduledCourseCandidates = async (id: string) =>
+  (await api.get<ScheduledCourseCandidate[]>(`/cursos-programados/${id}/matriculados-periodo`)).data;
+
+export const enrollCourseCandidates = async (id: string, matriculaIds: string[]) =>
+  (await api.post<{ data: Array<{ matriculaId: string; success: boolean; message?: string }> }>(
+    `/cursos-programados/${id}/alumnos`,
+    { matriculaIds },
+  )).data;
+
+export const withdrawCourseStudent = async (id: string) =>
+  (await api.patch(`/matriculas-cursos/${id}/estado`, { estado: 'retirado' })).data;

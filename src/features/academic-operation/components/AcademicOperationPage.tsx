@@ -35,6 +35,9 @@ import {
   getEnrollmentCourses,
   getEnrollments,
   getScheduledCourses,
+  getScheduledCourseCandidates,
+  enrollCourseCandidates,
+  withdrawCourseStudent,
   requestAuthorization,
   resolveAuthorization,
 } from '../api/academicOperationApi';
@@ -87,6 +90,8 @@ export function AcademicOperationPage() {
 function ScheduledCoursesView() {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  const [periodFilter, setPeriodFilter] = useState('');
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const careers = useQuery({ queryKey: ['academic', 'careers'], queryFn: getCareers });
   const plans = useQuery({ queryKey: ['academic', 'plans'], queryFn: () => getCurriculumPlans() });
   const planCourses = useQuery({ queryKey: ['academic', 'plan-courses'], queryFn: () => getPlanCourses() });
@@ -97,8 +102,8 @@ function ScheduledCoursesView() {
     queryFn: () => getTeachers({ page: 1, pageSize: 20, estado: 'activo' }),
   });
   const scheduled = useQuery({
-    queryKey: ['operation', 'scheduled-courses'],
-    queryFn: () => getScheduledCourses(),
+    queryKey: ['operation', 'scheduled-courses', periodFilter],
+    queryFn: () => getScheduledCourses({ periodoId: periodFilter || undefined }),
   });
   const form = useForm<ScheduledCourseValues>({
     resolver: zodResolver(scheduledCourseSchema),
@@ -132,6 +137,7 @@ function ScheduledCoursesView() {
         <div><h2>Oferta del periodo</h2><p>Cada curso vincula una carrera, periodo y docente activo.</p></div>
         <Button onClick={() => setShowForm((value) => !value)} type="button"><Plus size={16} />Programar curso</Button>
       </div>
+      <label className="select-filter operation-period-filter"><span>Periodo</span><select className="form-select" onChange={(event) => setPeriodFilter(event.target.value)} value={periodFilter}><option value="">Todos</option>{periods.data?.map((period) => <option key={period.id} value={period.id}>{period.nombre}</option>)}</select></label>
       {showForm ? (
         <form className="operation-form" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
           <FormField error={form.formState.errors.carreraId?.message} htmlFor="scheduled-career" label="Carrera">
@@ -150,13 +156,14 @@ function ScheduledCoursesView() {
         </form>
       ) : null}
       <DataTable
-        columns={['Curso', 'Carrera y plan', 'Periodo', 'Docente', 'Estado']}
+        columns={['Curso', 'Carrera y plan', 'Periodo', 'Docente', 'Estado', 'Alumnos']}
         empty="No hay cursos programados."
         error={scheduled.isError}
         loading={scheduled.isPending}
       >
-        {scheduled.data?.map((row) => <tr key={row.id}><td><strong>{row.cursoNombre}</strong><span>Ciclo {row.ciclo}</span></td><td>{row.carreraNombre}<small>{row.planNombre}</small></td><td>{row.periodoNombre}</td><td>{row.profesorApellidoPaterno}, {row.profesorNombres}</td><td><StatusBadge active={row.estado === 'activo'} /></td></tr>)}
+        {scheduled.data?.map((row) => <tr key={row.id}><td><strong>{row.cursoNombre}</strong><span>Ciclo {row.ciclo}</span></td><td>{row.carreraNombre}<small>{row.planNombre}</small></td><td>{row.periodoNombre}</td><td>{row.profesorApellidoPaterno}, {row.profesorNombres}</td><td><StatusBadge active={row.estado === 'activo'} /></td><td><Button onClick={() => setSelectedCourseId(row.id)} type="button" variant="ghost">Gestionar</Button></td></tr>)}
       </DataTable>
+      {selectedCourseId ? <CourseRoster courseId={selectedCourseId} onClose={() => setSelectedCourseId(null)} /> : null}
     </section>
   );
 }
@@ -166,6 +173,7 @@ function EnrollmentsView() {
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState<CareerEnrollment | null>(null);
   const [studentSearch, setStudentSearch] = useState('');
+  const [periodFilter, setPeriodFilter] = useState('');
   const debouncedStudentSearch = useDebouncedValue(studentSearch.trim(), 300);
   const careers = useQuery({ queryKey: ['academic', 'careers'], queryFn: getCareers });
   const plans = useQuery({ queryKey: ['academic', 'plans'], queryFn: () => getCurriculumPlans() });
@@ -180,12 +188,12 @@ function EnrollmentsView() {
     }),
     enabled: showForm,
   });
-  const enrollments = useQuery({ queryKey: ['operation', 'enrollments'], queryFn: () => getEnrollments() });
+  const enrollments = useQuery({ queryKey: ['operation', 'enrollments', periodFilter], queryFn: () => getEnrollments({ periodoId: periodFilter || undefined }) });
   const form = useForm<EnrollmentValues>({
     resolver: zodResolver(enrollmentSchema),
     defaultValues: {
       personaId: '', carreraId: '', planCurricularId: '',
-      periodoAcademicoId: '', fechaMatricula: today,
+      periodoAcademicoId: '',
     },
   });
   const careerId = useWatch({ control: form.control, name: 'carreraId' });
@@ -197,7 +205,7 @@ function EnrollmentsView() {
   const mutation = useMutation({
     mutationFn: (values: EnrollmentValues) => createEnrollment(values),
     onSuccess: async () => {
-      form.reset({ personaId: '', carreraId: '', planCurricularId: '', periodoAcademicoId: '', fechaMatricula: today });
+      form.reset({ personaId: '', carreraId: '', planCurricularId: '', periodoAcademicoId: '' });
       setStudentSearch('');
       setShowForm(false);
       await queryClient.invalidateQueries({ queryKey: ['operation', 'enrollments'] });
@@ -210,6 +218,7 @@ function EnrollmentsView() {
         <div><h2>Matrículas por periodo</h2><p>El ciclo de ingreso permanece en el perfil; aquí se ordena la continuidad académica.</p></div>
         <Button onClick={() => setShowForm((value) => !value)} type="button"><Plus size={16} />Nueva matrícula</Button>
       </div>
+      <label className="select-filter operation-period-filter"><span>Periodo</span><select className="form-select" onChange={(event) => setPeriodFilter(event.target.value)} value={periodFilter}><option value="">Todos</option>{periods.data?.map((period) => <option key={period.id} value={period.id}>{period.nombre}</option>)}</select></label>
       {showForm ? (
         <form className="operation-form" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
           <FormField error={form.formState.errors.personaId?.message} htmlFor="student-search" label="Alumno">
@@ -220,15 +229,43 @@ function EnrollmentsView() {
           </FormField>
           <FormField error={form.formState.errors.carreraId?.message} htmlFor="enrollment-career" label="Carrera"><select className="form-select" id="enrollment-career" {...form.register('carreraId')}><option value="">Seleccionar</option>{careers.data?.filter((item) => item.estado === 'activo').map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></FormField>
           <FormField error={form.formState.errors.periodoAcademicoId?.message} htmlFor="enrollment-period" label="Periodo"><select className="form-select" id="enrollment-period" {...form.register('periodoAcademicoId')}><option value="">Seleccionar</option>{periods.data?.filter((item) => item.carreraId === careerId && item.estado === 'activo').map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></FormField>
-          <FormField error={form.formState.errors.fechaMatricula?.message} htmlFor="enrollment-date" label="Fecha"><Input id="enrollment-date" type="date" {...form.register('fechaMatricula')} /></FormField>
           <MutationActions error={mutation.error} pending={mutation.isPending} onCancel={() => setShowForm(false)} />
         </form>
       ) : null}
-      <DataTable columns={['Alumno', 'Trayectoria', 'Periodo', 'Fecha', 'Estado', 'Acción']} empty="No hay matrículas registradas." error={enrollments.isError} loading={enrollments.isPending}>
-        {enrollments.data?.map((row) => <tr key={row.matricula.id}><td><strong>{row.persona.apellidoPaterno}, {row.persona.nombres}</strong><span>{row.persona.dni}</span></td><td>{row.carreraNombre}<small>{row.planNombre}</small></td><td>{row.periodoNombre}</td><td>{row.matricula.fechaMatricula}</td><td><span className={`profile-state is-${row.matricula.estado}`}>{row.matricula.estado}</span></td><td><Button onClick={() => setSelected(row)} type="button" variant="ghost"><ClipboardList size={15} />Continuar</Button></td></tr>)}
+      <DataTable columns={['Alumno', 'Trayectoria', 'Periodo', 'Estado', 'Acción']} empty="No hay matrículas registradas." error={enrollments.isError} loading={enrollments.isPending}>
+        {enrollments.data?.map((row) => <tr key={row.matricula.id}><td><strong>{row.persona.apellidoPaterno}, {row.persona.nombres}</strong><span>{row.persona.dni}</span></td><td>{row.carreraNombre}<small>{row.planNombre}</small></td><td>{row.periodoNombre}</td><td><span className={`profile-state is-${row.matricula.estado}`}>{row.matricula.estado}</span></td><td><Button onClick={() => setSelected(row)} type="button" variant="ghost"><ClipboardList size={15} />Continuar</Button></td></tr>)}
       </DataTable>
       {selected ? <EnrollmentDetail enrollment={selected} onClose={() => setSelected(null)} /> : null}
     </section>
+  );
+}
+
+function CourseRoster({ courseId, onClose }: { courseId: string; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const candidates = useQuery({
+    queryKey: ['operation', 'course-candidates', courseId],
+    queryFn: () => getScheduledCourseCandidates(courseId),
+  });
+  const register = useMutation({
+    mutationFn: () => enrollCourseCandidates(courseId, selectedIds),
+    onSuccess: async () => {
+      setSelectedIds([]);
+      await queryClient.invalidateQueries({ queryKey: ['operation', 'course-candidates', courseId] });
+    },
+  });
+  const withdraw = useMutation({
+    mutationFn: withdrawCourseStudent,
+    onSuccess: async () => queryClient.invalidateQueries({ queryKey: ['operation', 'course-candidates', courseId] }),
+  });
+  const available = candidates.data?.filter((row) => !row.inscripcion) ?? [];
+  const registered = candidates.data?.filter((row) => row.inscripcion) ?? [];
+  return (
+    <aside aria-label="Alumnos del curso" className="operation-detail">
+      <header><div><p className="eyebrow">Curso programado</p><h2>Gestionar alumnos</h2><p>Selecciona varios matriculados para registrarlos en una sola operación.</p></div><Button aria-label="Cerrar alumnos" onClick={onClose} type="button" variant="ghost"><X size={18} /></Button></header>
+      <section className="roster-section"><h3>Disponibles ({available.length})</h3>{available.length ? <div className="roster-list">{available.map((row) => <label key={row.matriculaId}><input checked={selectedIds.includes(row.matriculaId)} onChange={(event) => setSelectedIds((current) => event.target.checked ? [...current, row.matriculaId] : current.filter((id) => id !== row.matriculaId))} type="checkbox" /><span><strong>{row.apellidoPaterno}, {row.nombres}</strong><small>{row.dni}</small></span></label>)}</div> : <p className="operation-empty">No hay alumnos pendientes de registro.</p>}<Button disabled={!selectedIds.length || register.isPending} onClick={() => register.mutate()} type="button">Registrar seleccionados ({selectedIds.length})</Button></section>
+      <section className="roster-section"><h3>Registrados ({registered.length})</h3>{registered.length ? <div className="roster-list">{registered.map((row) => <div className="roster-row" key={row.matriculaId}><span><strong>{row.apellidoPaterno}, {row.nombres}</strong><small>{row.dni} · {row.inscripcion?.estado}</small></span>{row.inscripcion?.estado === 'activo' ? <Button disabled={withdraw.isPending} onClick={() => withdraw.mutate(row.inscripcion!.id)} type="button" variant="ghost">Retirar</Button> : null}</div>)}</div> : <p className="operation-empty">Aún no hay alumnos registrados.</p>}</section>
+    </aside>
   );
 }
 

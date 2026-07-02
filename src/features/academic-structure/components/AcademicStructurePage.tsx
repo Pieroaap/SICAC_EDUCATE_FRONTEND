@@ -702,7 +702,14 @@ function AcademicPeriodsEntity({ id, mode }: { id?: string; mode: Mode }) {
         <FormField error={form.formState.errors.fechaFin?.message} htmlFor="fechaFin" label="Fecha fin">
           <Input id="fechaFin" type="date" {...form.register('fechaFin')} />
         </FormField>
-        {mode === 'edit' ? <StateSelect register={form.register('estado')} /> : null}
+        {mode === 'edit' ? (
+          <FormField htmlFor="estado-periodo" label="Estado">
+            <select className="form-select" id="estado-periodo" {...form.register('estado')}>
+              <option value="activo">Activo</option>
+              <option value="culminado">Culminado</option>
+            </select>
+          </FormField>
+        ) : null}
       </EntityForm>
     );
   }
