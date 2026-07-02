@@ -31,17 +31,17 @@ const navigation: NavigationGroup[] = [
     ],
   },
   {
-    label: 'Academia',
+    label: 'Operación',
     items: [
       { label: 'Carreras y planes', to: '/estructura/carreras', allowed: identityManagers },
       { label: 'Cursos', to: '/estructura/cursos', allowed: identityManagers },
       { label: 'Cursos por plan', to: '/estructura/plan-cursos', allowed: identityManagers },
-      { label: 'Periodos academicos', to: '/estructura/periodos-academicos', allowed: identityManagers },
     ],
   },
   {
-    label: 'Operación',
+    label: 'Programación',
     items: [
+      { label: 'Periodos academicos', to: '/estructura/periodos-academicos', allowed: identityManagers },
       { label: 'Cursos programados', to: '/operacion/cursos-programados', allowed: identityManagers },
       { label: 'Matrículas e historial', to: '/operacion/matriculas', allowed: identityManagers },
       { label: 'Excepciones', to: '/operacion/excepciones', allowed: identityManagers },
