@@ -50,6 +50,7 @@
 html { min-width: 320px; background: var(--canvas); }
 body { min-width: 320px; min-height: 100vh; margin: 0; }
 button, input { font: inherit; }
+select, textarea { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: default; }
 
@@ -1069,6 +1070,100 @@ button:disabled { cursor: default; }
 }
 .academic-table-wrap { max-height: min(68vh, 780px); }
 .academic-table { min-width: 980px; }
+
+.operation-page { position: relative; }
+.operation-section { display: grid; gap: 1rem; }
+.operation-section__heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.5rem;
+}
+.operation-section__heading h2 { margin: 0; font-size: 1.25rem; letter-spacing: -0.035em; }
+.operation-section__heading p { margin: 0.35rem 0 0; color: var(--ink-secondary); font-size: 0.82rem; }
+.operation-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  padding: 1.15rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.operation-form__actions {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+.operation-form__actions .error-banner { margin-right: auto; }
+.operation-table { min-width: 1080px; }
+.operation-table td small { display: block; margin-top: 0.2rem; }
+.operation-reason { min-width: 260px; max-width: 420px; white-space: normal; line-height: 1.45; }
+.operation-detail {
+  position: fixed;
+  z-index: 50;
+  top: 88px;
+  right: 1rem;
+  bottom: 1rem;
+  width: min(760px, calc(100vw - 2rem));
+  overflow: auto;
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.18);
+}
+.operation-detail > header { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+.operation-detail h2 { margin: 0.25rem 0; font-size: 1.45rem; letter-spacing: -0.04em; }
+.operation-detail header p:last-child { margin: 0; color: var(--ink-secondary); font-size: 0.8rem; }
+.operation-detail h3 { margin: 0 0 0.8rem; font-size: 0.9rem; }
+.operation-detail__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.25rem 0; }
+.operation-detail__grid > section {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--canvas);
+}
+.trajectory-list { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.trajectory-list li { position: relative; display: grid; grid-template-columns: 30px 1fr; gap: 0.65rem; min-height: 54px; }
+.trajectory-list li > span {
+  position: relative;
+  z-index: 1;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: white;
+  background: #c41e3a;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+.trajectory-list li:not(:last-child)::before { position: absolute; top: 24px; bottom: -2px; left: 12px; width: 1px; content: ""; background: var(--line); }
+.trajectory-list strong, .trajectory-list small { display: block; }
+.trajectory-list strong { color: var(--ink); font-size: 0.8rem; }
+.trajectory-list small { margin-top: 0.2rem; color: var(--ink-muted); }
+.operation-empty { color: var(--ink-muted); font-size: 0.8rem; }
+.form-textarea { min-height: 92px; resize: vertical; padding: 0.75rem; border: 1px solid var(--control-line); border-radius: 8px; color: var(--ink); background: var(--control); }
+.form-textarea:focus { outline: none; border-color: #c41e3a; box-shadow: 0 0 0 4px rgba(196, 30, 58, 0.1); }
+.authorization-strip { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.authorization-state { display: inline-flex; padding: 0.3rem 0.55rem; border-radius: 999px; color: var(--ink-secondary); background: var(--canvas); font-size: 0.7rem; font-weight: 750; text-transform: capitalize; }
+.authorization-state.is-aprobada { color: #167044; background: rgba(22, 112, 68, 0.09); }
+.authorization-state.is-rechazada { color: #a3162e; background: rgba(196, 30, 58, 0.08); }
+.authorization-state.is-pendiente { color: #9a6700; background: rgba(180, 118, 0, 0.1); }
+.decision-actions { display: flex; gap: 0.25rem; }
+
+@media (max-width: 900px) {
+  .operation-form { grid-template-columns: 1fr; }
+  .operation-detail__grid { grid-template-columns: 1fr; }
+  .operation-section__heading { align-items: stretch; flex-direction: column; }
+}
 .academic-split {
   display: grid;
   grid-template-columns: minmax(320px, 0.58fr) minmax(0, 1fr);

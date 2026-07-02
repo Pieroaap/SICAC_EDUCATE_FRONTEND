@@ -192,3 +192,80 @@ export type AcademicPeriod = {
   fechaFin: string;
   estado: ActiveState;
 };
+
+export type ScheduledCourse = {
+  id: string;
+  seccion: string;
+  estado: ActiveState;
+  planCursoId: string;
+  cursoId: string;
+  cursoCodigo: string;
+  cursoNombre: string;
+  ciclo: number;
+  planCurricularId: string;
+  planNombre: string;
+  carreraId: string;
+  carreraNombre: string;
+  periodoAcademicoId: string;
+  periodoNombre: string;
+  profesorPersonaId: string;
+  profesorNombres: string;
+  profesorApellidoPaterno: string;
+  profesorApellidoMaterno: string | null;
+};
+
+export type CareerEnrollment = {
+  matricula: {
+    id: string;
+    personaId: string;
+    carreraId: string;
+    planCurricularId: string;
+    periodoAcademicoId: string;
+    estado: 'activo' | 'retirado' | 'completado' | 'anulado';
+    fechaMatricula: string;
+    beneficio: StudentListItem['beneficio'] | null;
+    tipoBeneficio: StudentListItem['tipoBeneficio'] | null;
+    observacionBeneficio: string | null;
+    snapshotCosto: string | null;
+  };
+  persona: {
+    id: string;
+    dni: string;
+    nombres: string;
+    apellidoPaterno: string;
+    apellidoMaterno: string | null;
+  };
+  carreraNombre: string;
+  planNombre: string;
+  periodoNombre: string;
+};
+
+export type CourseEnrollment = {
+  inscripcion: {
+    id: string;
+    fechaInscripcion: string;
+    estado: 'activo' | 'retirado' | 'completado' | 'anulado';
+  };
+  cursoProgramado: ScheduledCourse;
+  cursoCodigo: string;
+  cursoNombre: string;
+  ciclo: number;
+};
+
+export type PrerequisiteAuthorization = {
+  id: string;
+  matriculaCarreraId: string;
+  cursoProgramadoId: string;
+  motivo: string;
+  estado: 'pendiente' | 'aprobada' | 'rechazada';
+  fechaAprobacion: string | null;
+  createdAt: string;
+  alumnoDocumento: string;
+  alumnoNombres: string;
+  alumnoApellidoPaterno: string;
+  alumnoApellidoMaterno: string | null;
+  cursoCodigo: string;
+  cursoNombre: string;
+  seccion: string;
+  periodoNombre: string;
+};

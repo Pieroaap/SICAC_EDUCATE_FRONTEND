@@ -23,6 +23,8 @@ const TeachersListPage = lazy(() => import('../features/profiles/components/Teac
   .then((module) => ({ default: module.TeachersListPage })));
 const AcademicStructurePage = lazy(() => import('../features/academic-structure/components/AcademicStructurePage')
   .then((module) => ({ default: module.AcademicStructurePage })));
+const AcademicOperationPage = lazy(() => import('../features/academic-operation/components/AcademicOperationPage')
+  .then((module) => ({ default: module.AcademicOperationPage })));
 
 export function App() {
   return (
@@ -108,6 +110,14 @@ export function App() {
               </RequireRole>
             )}
             path="estructura/:entity/:id"
+          />
+          <Route
+            element={(
+              <RequireRole allowed={['ADMINISTRADOR_SISTEMA', 'DIRECTOR_ACADEMICO', 'GESTOR_ACADEMICO']}>
+                <AcademicOperationPage />
+              </RequireRole>
+            )}
+            path="operacion/:entity"
           />
           <Route element={<ForbiddenPage />} path="sin-permiso" />
         </Route>

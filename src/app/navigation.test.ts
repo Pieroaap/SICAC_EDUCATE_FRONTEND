@@ -20,6 +20,9 @@ describe('getNavigationGroups', () => {
       'Cursos',
       'Cursos por plan',
       'Periodos academicos',
+      'Cursos programados',
+      'Matrículas e historial',
+      'Excepciones',
     ]);
   });
 });

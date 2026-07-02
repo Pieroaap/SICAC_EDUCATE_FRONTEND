@@ -39,6 +39,14 @@ const navigation: NavigationGroup[] = [
       { label: 'Periodos academicos', to: '/estructura/periodos-academicos', allowed: identityManagers },
     ],
   },
+  {
+    label: 'Operación',
+    items: [
+      { label: 'Cursos programados', to: '/operacion/cursos-programados', allowed: identityManagers },
+      { label: 'Matrículas e historial', to: '/operacion/matriculas', allowed: identityManagers },
+      { label: 'Excepciones', to: '/operacion/excepciones', allowed: identityManagers },
+    ],
+  },
 ];
 
 export function getNavigationGroups(roleCodes: RoleCode[]) {
