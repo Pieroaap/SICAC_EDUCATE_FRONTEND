@@ -1,5 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Plus, X } from 'lucide-react';
+import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { getApiErrorMessage } from '../../../api/client';
 import type { RoleCode } from '../../../api/types';
@@ -30,6 +32,7 @@ export function PersonCareerEnrollmentsPanel({
   personId: string;
 }) {
   const queryClient = useQueryClient();
+  const [showForm, setShowForm] = useState(false);
   const canWrite = actorRoles.some((role) => role === 'ADMINISTRADOR_SISTEMA' || role === 'GESTOR_ACADEMICO');
   const form = useForm<CareerRegistrationValues>({
     resolver: zodResolver(careerRegistrationSchema),
@@ -46,6 +49,7 @@ export function PersonCareerEnrollmentsPanel({
     mutationFn: (values: CareerRegistrationValues) => createCareerRegistration({ ...values, personaId: personId }),
     onSuccess: async () => {
       form.reset({ carreraId: '', planCurricularId: '', fechaInicio: today, cicloInicio: 1 });
+      setShowForm(false);
       await queryClient.invalidateQueries({ queryKey: ['career-registrations', personId] });
     },
   });
@@ -56,9 +60,18 @@ export function PersonCareerEnrollmentsPanel({
   });
 
   return (
-    <div className="detail-panel">
-      <h3>Inscripciones a carrera</h3>
-      <p>Vínculo permanente del alumno; no corresponde a una matrícula por periodo.</p>
+    <div className="detail-panel academic-history-card">
+      <div className="academic-history-card__heading">
+        <div>
+          <h3>Inscripciones a carrera</h3>
+          <p>Vínculo permanente del alumno; no corresponde a una matrícula por periodo.</p>
+        </div>
+        {canWrite ? (
+          <Button onClick={() => setShowForm(true)} type="button" variant="secondary">
+            <Plus size={16} /> Nueva inscripción
+          </Button>
+        ) : null}
+      </div>
       {registrations.isPending ? <p>Cargando inscripciones…</p> : null}
       {registrations.isError ? <div className="error-banner">No se pudieron cargar las inscripciones.</div> : null}
       {registrations.data?.data.length === 0 ? <p className="operation-empty">No registra inscripciones a carrera.</p> : null}
@@ -84,8 +97,20 @@ export function PersonCareerEnrollmentsPanel({
           ))}
         </ul>
       ) : null}
-      {canWrite ? (
-        <form className="operation-form" onSubmit={form.handleSubmit((values) => create.mutate(values))}>
+      {!canWrite ? <small>Tu rol permite consultar, pero no modificar inscripciones.</small> : null}
+      {showForm ? (
+        <aside aria-label="Nueva inscripción a carrera" className="operation-detail">
+          <header>
+            <div>
+              <p className="eyebrow">Trayectoria académica</p>
+              <h2>Nueva inscripción</h2>
+              <p>Registra el vínculo permanente del alumno con una carrera y plan curricular.</p>
+            </div>
+            <Button aria-label="Cerrar nueva inscripción" onClick={() => setShowForm(false)} type="button" variant="ghost">
+              <X size={18} />
+            </Button>
+          </header>
+          <form className="operation-form academic-history-form" onSubmit={form.handleSubmit((values) => create.mutate(values))}>
           <FormField error={form.formState.errors.carreraId?.message} htmlFor="registration-career" label="Carrera">
             <select className="form-select" id="registration-career" {...form.register('carreraId')}>
               <option value="">Seleccionar</option>
@@ -108,10 +133,14 @@ export function PersonCareerEnrollmentsPanel({
           <FormField error={form.formState.errors.cicloInicio?.message} htmlFor="registration-cycle" label="Ciclo de inicio">
             <Input id="registration-cycle" min={1} max={20} type="number" {...form.register('cicloInicio', { valueAsNumber: true })} />
           </FormField>
-          {create.error ? <div className="error-banner">{getApiErrorMessage(create.error, 'No se pudo crear la inscripción.')}</div> : null}
-          <Button disabled={create.isPending} type="submit">{create.isPending ? 'Guardando…' : 'Crear inscripción'}</Button>
-        </form>
-      ) : <small>Tu rol permite consultar, pero no modificar inscripciones.</small>}
+            <div className="operation-form__actions">
+              {create.error ? <div className="error-banner">{getApiErrorMessage(create.error, 'No se pudo crear la inscripción.')}</div> : null}
+              <Button onClick={() => setShowForm(false)} type="button" variant="secondary">Cancelar</Button>
+              <Button disabled={create.isPending} type="submit">{create.isPending ? 'Guardando…' : 'Crear inscripción'}</Button>
+            </div>
+          </form>
+        </aside>
+      ) : null}
     </div>
   );
 }

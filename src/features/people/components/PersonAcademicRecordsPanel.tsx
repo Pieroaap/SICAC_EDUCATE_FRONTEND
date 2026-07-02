@@ -1,5 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Plus, X } from 'lucide-react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { getApiErrorMessage } from '../../../api/client';
 import type { RoleCode } from '../../../api/types';
@@ -25,6 +27,7 @@ export function PersonAcademicRecordsPanel({
   personId: string;
 }) {
   const queryClient = useQueryClient();
+  const [showForm, setShowForm] = useState(false);
   const canAuthorize = actorRoles.includes('DIRECTOR_ACADEMICO');
   const form = useForm<AcademicRecordValues>({
     resolver: zodResolver(academicRecordSchema),
@@ -54,14 +57,24 @@ export function PersonAcademicRecordsPanel({
     }),
     onSuccess: async () => {
       form.reset();
+      setShowForm(false);
       await queryClient.invalidateQueries({ queryKey: ['academic-records', personId] });
     },
   });
 
   return (
-    <div className="detail-panel">
-      <h3>Antecedentes académicos reconocidos</h3>
-      <p>Cursos aprobados antes de SICAC, sin crear calificaciones ni asistencias ficticias.</p>
+    <div className="detail-panel academic-history-card">
+      <div className="academic-history-card__heading">
+        <div>
+          <h3>Antecedentes académicos reconocidos</h3>
+          <p>Cursos aprobados antes de SICAC, sin crear calificaciones ni asistencias ficticias.</p>
+        </div>
+        {canAuthorize ? (
+          <Button onClick={() => setShowForm(true)} type="button" variant="secondary">
+            <Plus size={16} /> Reconocer antecedente
+          </Button>
+        ) : null}
+      </div>
       {records.isPending ? <p>Cargando antecedentes…</p> : null}
       {records.isError ? <div className="error-banner">No se pudieron cargar los antecedentes.</div> : null}
       {records.data?.data.length === 0 ? <p className="operation-empty">No hay antecedentes reconocidos.</p> : null}
@@ -76,8 +89,20 @@ export function PersonAcademicRecordsPanel({
           ))}
         </ul>
       ) : null}
-      {canAuthorize ? (
-        <form className="operation-form" onSubmit={form.handleSubmit((values) => create.mutate(values))}>
+      {!canAuthorize ? <small>Solo Dirección Académica puede autorizar nuevos antecedentes.</small> : null}
+      {showForm ? (
+        <aside aria-label="Reconocer antecedente académico" className="operation-detail">
+          <header>
+            <div>
+              <p className="eyebrow">Trayectoria académica</p>
+              <h2>Reconocer antecedente</h2>
+              <p>Registra un curso aprobado antes de SICAC sin crear notas ni asistencias ficticias.</p>
+            </div>
+            <Button aria-label="Cerrar reconocimiento" onClick={() => setShowForm(false)} type="button" variant="ghost">
+              <X size={18} />
+            </Button>
+          </header>
+          <form className="operation-form academic-history-form" onSubmit={form.handleSubmit((values) => create.mutate(values))}>
           <FormField error={form.formState.errors.planCursoId?.message} htmlFor="record-course" label="Curso del plan">
             <select className="form-select" id="record-course" {...form.register('planCursoId')}>
               <option value="">Seleccionar</option>
@@ -96,10 +121,14 @@ export function PersonAcademicRecordsPanel({
           <FormField error={form.formState.errors.observacion?.message} htmlFor="record-note" label="Observación">
             <textarea className="form-textarea" id="record-note" {...form.register('observacion')} />
           </FormField>
-          {create.error ? <div className="error-banner">{getApiErrorMessage(create.error, 'No se pudo reconocer el antecedente.')}</div> : null}
-          <Button disabled={create.isPending} type="submit">{create.isPending ? 'Autorizando…' : 'Reconocer antecedente'}</Button>
-        </form>
-      ) : <small>Solo Dirección Académica puede autorizar nuevos antecedentes.</small>}
+            <div className="operation-form__actions">
+              {create.error ? <div className="error-banner">{getApiErrorMessage(create.error, 'No se pudo reconocer el antecedente.')}</div> : null}
+              <Button onClick={() => setShowForm(false)} type="button" variant="secondary">Cancelar</Button>
+              <Button disabled={create.isPending} type="submit">{create.isPending ? 'Autorizando…' : 'Reconocer antecedente'}</Button>
+            </div>
+          </form>
+        </aside>
+      ) : null}
     </div>
   );
 }

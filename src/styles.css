@@ -824,6 +824,34 @@ button:disabled { cursor: default; }
   font-size: 0.8rem;
   line-height: 1.55;
 }
+.academic-history-card {
+  min-height: 190px;
+  padding: 1.25rem;
+}
+.academic-history-card__heading {
+  display: grid;
+  gap: 1rem;
+}
+.academic-history-card__heading > div {
+  min-width: 0;
+}
+.academic-history-card__heading h3 {
+  font-size: 1rem;
+}
+.academic-history-card__heading p {
+  max-width: 46ch;
+  margin: 0.35rem 0 0;
+  color: var(--ink-secondary);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+.academic-history-card__heading > button {
+  width: 100%;
+}
+.academic-history-form {
+  margin-top: 1.25rem;
+  background: var(--canvas);
+}
 .detail-list {
   display: grid;
   gap: 0.7rem;
@@ -1467,6 +1495,21 @@ button:disabled { cursor: default; }
 }
 
 @media (max-width: 520px) {
+  .operation-detail {
+    top: 0.75rem;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    width: calc(100vw - 1.5rem);
+    padding: 1rem;
+  }
+  .operation-form__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .operation-form__actions .error-banner {
+    width: 100%;
+    margin-right: 0;
+  }
   .auth-mobile-brand { min-height: 118px; margin-bottom: 2rem; }
   .auth-mobile-brand img { width: 158px; }
   .auth-card { gap: 1.7rem; }
