@@ -41,12 +41,12 @@ export type PersonPayloadBase = {
 
 export type CreateGuardianPersonInput = PersonPayloadBase & {
   tipoRelacion: string;
-  fechaInicio?: string;
 };
 
 export type CreatePersonInput = PersonPayloadBase & {
   initialRole: InitialPersonRole;
   alumnoPerfil?: StudentProfileValues;
+  initialRegistration?: { carreraId: string; periodoInicioId: string };
   tutor?: CreateGuardianPersonInput;
 };
 
@@ -79,7 +79,6 @@ export async function resetPersonPassword(personId: string) {
 export type AssignGuardianInput = {
   guardianId: string;
   relationship: string;
-  startDate: string;
   endDate?: string;
 };
 
@@ -107,5 +106,19 @@ export async function updateTeacherRoleStatus(
   input: { estado: 'activo' | 'inactivo' },
 ) {
   const { data } = await api.patch(`/profesores/${personId}`, input);
+  return data;
+}
+
+export async function assignPersonRole(
+  personId: string,
+  input: {
+    role: RoleCode;
+    student?: {
+      carreraId: string; periodoInicioId: string; estado: 'activo';
+      beneficio: 'normal'; tipoBeneficio: 'regular';
+    };
+  },
+) {
+  const { data } = await api.post(`/personas/${personId}/roles`, input);
   return data;
 }

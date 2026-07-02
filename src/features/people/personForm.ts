@@ -28,7 +28,6 @@ export const studentProfileSchema = z.object({
 
 const guardianSchema = personSchema.extend({
   tipoRelacion: z.string().trim().min(1, 'Indica el parentesco').max(50),
-  fechaInicio: z.string().optional(),
 });
 
 export const createPersonSchema = personSchema.extend({
@@ -41,6 +40,10 @@ export const createPersonSchema = personSchema.extend({
     'TUTOR',
   ]),
   alumnoPerfil: studentProfileSchema.optional(),
+  initialRegistration: z.object({
+    carreraId: z.uuid('Selecciona una carrera'),
+    periodoInicioId: z.uuid('Selecciona un periodo de inicio'),
+  }).optional(),
   includeTutor: z.boolean(),
   tutor: guardianSchema.optional(),
 }).superRefine((value, ctx) => {
@@ -50,6 +53,9 @@ export const createPersonSchema = personSchema.extend({
       message: 'Completa el perfil de alumno',
       path: ['alumnoPerfil'],
     });
+  }
+  if (value.initialRole === 'ALUMNO' && !value.initialRegistration) {
+    ctx.addIssue({ code: 'custom', message: 'Completa la inscripción inicial', path: ['initialRegistration'] });
   }
   if (value.includeTutor && !value.tutor) {
     ctx.addIssue({
@@ -87,6 +93,7 @@ export const emptyCreatePersonValues: CreatePersonValues = {
   ...emptyPersonValues,
   initialRole: 'ALUMNO',
   alumnoPerfil: emptyStudentProfileValues,
+  initialRegistration: { carreraId: '', periodoInicioId: '' },
   includeTutor: false,
   tutor: undefined,
 };
@@ -145,11 +152,11 @@ export function toCreatePersonPayload(values: CreatePersonValues) {
     ...base,
     initialRole: values.initialRole,
     alumnoPerfil: values.initialRole === 'ALUMNO' ? values.alumnoPerfil : undefined,
+    initialRegistration: values.initialRole === 'ALUMNO' ? values.initialRegistration : undefined,
     tutor: values.initialRole === 'ALUMNO' && values.includeTutor && values.tutor
       ? {
         ...cleanPersonPayload(values.tutor),
         tipoRelacion: values.tutor.tipoRelacion,
-        fechaInicio: values.tutor.fechaInicio || undefined,
       }
       : undefined,
   };

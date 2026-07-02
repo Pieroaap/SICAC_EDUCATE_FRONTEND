@@ -16,6 +16,7 @@ const identityManagers: RoleCode[] = [
   'DIRECTOR_ACADEMICO',
   'GESTOR_ACADEMICO',
 ];
+const exceptionManagers: RoleCode[] = ['ADMINISTRADOR_SISTEMA', 'DIRECTOR_ACADEMICO'];
 
 const navigation: NavigationGroup[] = [
   {
@@ -44,7 +45,7 @@ const navigation: NavigationGroup[] = [
       { label: 'Periodos academicos', to: '/estructura/periodos-academicos', allowed: identityManagers },
       { label: 'Cursos programados', to: '/operacion/cursos-programados', allowed: identityManagers },
       { label: 'Matrículas e historial', to: '/operacion/matriculas', allowed: identityManagers },
-      { label: 'Excepciones', to: '/operacion/excepciones', allowed: identityManagers },
+      { label: 'Excepciones', to: '/operacion/excepciones', allowed: exceptionManagers },
     ],
   },
 ];

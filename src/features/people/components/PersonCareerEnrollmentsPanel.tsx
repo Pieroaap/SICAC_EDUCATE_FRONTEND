@@ -19,7 +19,6 @@ import {
 import {
   getCareers,
   getAcademicPeriods,
-  getCurriculumPlans,
 } from '../../academic-structure/api/academicStructureApi';
 
 const periodOrder = { I: 1, II: 2, III: 3 } as const;
@@ -36,7 +35,7 @@ export function PersonCareerEnrollmentsPanel({
   const canWrite = actorRoles.some((role) => role === 'ADMINISTRADOR_SISTEMA' || role === 'GESTOR_ACADEMICO');
   const form = useForm<CareerRegistrationValues>({
     resolver: zodResolver(careerRegistrationSchema),
-    defaultValues: { carreraId: '', planCurricularId: '', periodoInicioId: '' },
+    defaultValues: { carreraId: '', periodoInicioId: '' },
   });
   const careerId = useWatch({ control: form.control, name: 'carreraId' });
   const registrations = useQuery({
@@ -44,7 +43,6 @@ export function PersonCareerEnrollmentsPanel({
     queryFn: () => getCareerRegistrations(personId),
   });
   const careers = useQuery({ queryKey: ['academic', 'careers'], queryFn: getCareers });
-  const plans = useQuery({ queryKey: ['academic', 'plans'], queryFn: () => getCurriculumPlans() });
   const periods = useQuery({
     queryKey: ['academic', 'periods', careerId],
     queryFn: () => getAcademicPeriods({ carreraId: careerId }),
@@ -69,7 +67,7 @@ export function PersonCareerEnrollmentsPanel({
   const create = useMutation({
     mutationFn: (values: CareerRegistrationValues) => createCareerRegistration({ ...values, personaId: personId }),
     onSuccess: async () => {
-      form.reset({ carreraId: '', planCurricularId: '', periodoInicioId: '' });
+      form.reset({ carreraId: '', periodoInicioId: '' });
       setShowForm(false);
       await queryClient.invalidateQueries({ queryKey: ['career-registrations', personId] });
     },
@@ -125,7 +123,7 @@ export function PersonCareerEnrollmentsPanel({
             <div>
               <p className="eyebrow">Trayectoria académica</p>
               <h2>Nueva inscripción</h2>
-              <p>Registra el vínculo permanente del alumno con una carrera y plan curricular.</p>
+              <p>Registra el vínculo permanente con la carrera; se aplicará automáticamente su plan vigente.</p>
             </div>
             <Button aria-label="Cerrar nueva inscripción" onClick={() => setShowForm(false)} type="button" variant="ghost">
               <X size={18} />
@@ -136,14 +134,6 @@ export function PersonCareerEnrollmentsPanel({
             <select className="form-select" id="registration-career" {...form.register('carreraId')}>
               <option value="">Seleccionar</option>
               {careers.data?.filter((item) => item.estado === 'activo').map((item) => (
-                <option key={item.id} value={item.id}>{item.nombre}</option>
-              ))}
-            </select>
-          </FormField>
-          <FormField error={form.formState.errors.planCurricularId?.message} htmlFor="registration-plan" label="Plan">
-            <select className="form-select" id="registration-plan" {...form.register('planCurricularId')}>
-              <option value="">Seleccionar</option>
-              {plans.data?.filter((item) => item.carreraId === careerId && item.estado === 'activo').map((item) => (
                 <option key={item.id} value={item.id}>{item.nombre}</option>
               ))}
             </select>

@@ -22,18 +22,11 @@ function formatGuardianName(guardian: PersonDetail['tutores'][number]) {
   ].filter(Boolean).join(' ');
 }
 
-function today() {
-  const now = new Date();
-  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-  return now.toISOString().slice(0, 10);
-}
-
 export function PersonGuardiansPanel({ actorRoles, onFeedback, person }: Props) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [guardianId, setGuardianId] = useState('');
   const [relationship, setRelationship] = useState('');
-  const [startDate, setStartDate] = useState(today);
   const canAssign = canAssignGuardian(actorRoles);
   const activeGuardians = person.tutores.filter((guardian) => guardian.estado === 'activo');
   const canAddMore = activeGuardians.length < 2;
@@ -59,7 +52,6 @@ export function PersonGuardiansPanel({ actorRoles, onFeedback, person }: Props) 
     mutationFn: () => assignStudentGuardian(person.id, {
       guardianId,
       relationship: relationship.trim(),
-      startDate,
     }),
     onSuccess: async () => {
       setGuardianId('');
@@ -150,14 +142,6 @@ export function PersonGuardiansPanel({ actorRoles, onFeedback, person }: Props) 
                 onChange={(event) => setRelationship(event.target.value)}
                 placeholder="Madre, padre, apoderado…"
                 value={relationship}
-              />
-            </label>
-            <label>
-              <span>Inicio</span>
-              <Input
-                onChange={(event) => setStartDate(event.target.value)}
-                type="date"
-                value={startDate}
               />
             </label>
           </div>

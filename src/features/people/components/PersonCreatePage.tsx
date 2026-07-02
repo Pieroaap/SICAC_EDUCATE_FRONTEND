@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, LoaderCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { getApiErrorMessage } from '../../../api/client';
@@ -23,6 +23,7 @@ import {
   studentStateOptions,
 } from '../studentProfileOptions';
 import { PersonFormSections } from './PersonFormSections';
+import { getAcademicPeriods, getCareers } from '../../academic-structure/api/academicStructureApi';
 
 const roleOptions = [
   { value: 'ALUMNO', label: 'Alumno', description: 'Crea identidad, rol Alumno y perfil académico.' },
@@ -32,6 +33,7 @@ const roleOptions = [
   { value: 'ADMINISTRADOR_SISTEMA', label: 'Administrador', description: 'Crea identidad y rol administrativo.' },
   { value: 'TUTOR', label: 'Tutor / apoderado', description: 'Crea persona sin rol de sistema.' },
 ] as const;
+const periodOrder = { I: 1, II: 2, III: 3 } as const;
 
 function fieldError(error: unknown) {
   return typeof error === 'object' && error && 'message' in error
@@ -79,6 +81,33 @@ export function PersonCreatePage() {
   });
   const initialRole = useWatch({ control, name: 'initialRole' });
   const includeTutor = useWatch({ control, name: 'includeTutor' });
+  const careerId = useWatch({ control, name: 'initialRegistration.carreraId' });
+  const periodId = useWatch({ control, name: 'initialRegistration.periodoInicioId' });
+  const careers = useQuery({ queryKey: ['academic', 'careers'], queryFn: getCareers });
+  const periods = useQuery({
+    queryKey: ['academic', 'periods', careerId],
+    queryFn: () => getAcademicPeriods({ carreraId: careerId }),
+    enabled: Boolean(careerId),
+  });
+  const today = new Date().toISOString().slice(0, 10);
+  const currentPeriod = periods.data?.find((period) => (
+    period.fechaInicio <= today && period.fechaFin >= today
+  ));
+  const eligiblePeriods = currentPeriod
+    ? periods.data?.filter((period) => (
+      period.anio > currentPeriod.anio
+      || (period.anio === currentPeriod.anio
+        && periodOrder[period.periodo] >= periodOrder[currentPeriod.periodo])
+    )).sort((left, right) => (
+      left.anio - right.anio || periodOrder[left.periodo] - periodOrder[right.periodo]
+    )) ?? []
+    : [];
+  useEffect(() => {
+    const period = periods.data?.find((item) => item.id === periodId);
+    if (!period) return;
+    setValue('alumnoPerfil.anioIngreso', period.anio);
+    setValue('alumnoPerfil.periodoIngreso', `${period.anio}-${period.periodo}`);
+  }, [periodId, periods.data, setValue]);
   const roleDescription = roleOptions.find((role) => role.value === initialRole)?.description;
 
   const createMutation = useMutation({
@@ -162,11 +191,22 @@ export function PersonCreatePage() {
                   ))}
                 </select>
               </FormField>
-              <FormField error={fieldError(errors.alumnoPerfil?.anioIngreso)} htmlFor="anioIngreso" label="Año de ingreso">
-                <Input id="anioIngreso" inputMode="numeric" type="number" {...register('alumnoPerfil.anioIngreso')} />
+              <FormField error={fieldError(errors.initialRegistration?.carreraId)} htmlFor="initialCareer" label="Carrera">
+                <select className="form-select" id="initialCareer" {...register('initialRegistration.carreraId')}>
+                  <option value="">Seleccionar</option>
+                  {careers.data?.filter((item) => item.estado === 'activo').map((item) => (
+                    <option key={item.id} value={item.id}>{item.nombre}</option>
+                  ))}
+                </select>
               </FormField>
-              <FormField error={fieldError(errors.alumnoPerfil?.periodoIngreso)} htmlFor="periodoIngreso" label="Periodo de ingreso">
-                <Input id="periodoIngreso" placeholder="2026-I" {...register('alumnoPerfil.periodoIngreso')} />
+              <FormField error={fieldError(errors.initialRegistration?.periodoInicioId)} htmlFor="initialPeriod" label="Periodo de ingreso">
+                <select className="form-select" id="initialPeriod" {...register('initialRegistration.periodoInicioId')}>
+                  <option value="">Seleccionar</option>
+                  {eligiblePeriods.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
+                </select>
+                {careerId && !periods.isPending && !currentPeriod ? (
+                  <small>La carrera no tiene un periodo académico vigente.</small>
+                ) : null}
               </FormField>
               <FormField error={fieldError(errors.alumnoPerfil?.beneficio)} htmlFor="beneficio" label="Beneficio">
                 <select className="form-select" id="beneficio" {...register('alumnoPerfil.beneficio')}>
@@ -206,7 +246,6 @@ export function PersonCreatePage() {
                       setValue('tutor', {
                         ...emptyPersonValues,
                         tipoRelacion: '',
-                        fechaInicio: new Date().toISOString().slice(0, 10),
                       });
                     } else {
                       setValue('tutor', undefined);

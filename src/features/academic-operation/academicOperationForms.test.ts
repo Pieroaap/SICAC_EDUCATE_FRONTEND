@@ -37,10 +37,10 @@ describe('formularios de operación académica', () => {
   });
   it('exige un periodo de inicio para la inscripción permanente', () => {
     expect(careerRegistrationSchema.safeParse({
-      carreraId: id, planCurricularId: id, periodoInicioId: id,
+      carreraId: id, periodoInicioId: id,
     }).success).toBe(true);
     expect(careerRegistrationSchema.safeParse({
-      carreraId: id, planCurricularId: id, periodoInicioId: '',
+      carreraId: id, periodoInicioId: '',
     }).success).toBe(false);
   });
 

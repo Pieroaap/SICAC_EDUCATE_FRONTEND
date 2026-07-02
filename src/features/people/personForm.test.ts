@@ -93,13 +93,11 @@ describe('personForm helpers', () => {
         nombres: 'Tutor',
         apellidoPaterno: 'Principal',
         tipoRelacion: 'Madre',
-        fechaInicio: '2026-01-01',
       },
     });
     expect(payload.tutor).toMatchObject({
       numeroDocumento: '87654321',
       tipoRelacion: 'Madre',
-      fechaInicio: '2026-01-01',
     });
   });
 

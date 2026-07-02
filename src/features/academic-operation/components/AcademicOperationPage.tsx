@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, ClipboardList, Plus, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { NavLink, useParams } from 'react-router-dom';
+import { Navigate, NavLink, useParams } from 'react-router-dom';
 import { getApiErrorMessage } from '../../../api/client';
 import type { CareerEnrollment, PrerequisiteAuthorization } from '../../../api/types';
 import { Button } from '../../../components/ui/Button';
@@ -62,6 +62,13 @@ function latestActivePlan<T extends { carreraId: string; estado: string; created
 
 export function AcademicOperationPage() {
   const { entity = 'cursos-programados' } = useParams();
+  const { profile } = useAuth();
+  const canViewExceptions = profile?.roles.some((role) => (
+    role.codigo === 'ADMINISTRADOR_SISTEMA' || role.codigo === 'DIRECTOR_ACADEMICO'
+  )) ?? false;
+  if (entity === 'excepciones' && !canViewExceptions) {
+    return <Navigate replace to="/sin-permiso" />;
+  }
   return (
     <main className="page-shell operation-page">
       <header className="page-heading">

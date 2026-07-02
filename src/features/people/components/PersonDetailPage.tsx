@@ -23,6 +23,7 @@ import { PersonGuardiansPanel } from './PersonGuardiansPanel';
 import { PersonStudentProfilePanel } from './PersonStudentProfilePanel';
 import { PersonCareerEnrollmentsPanel } from './PersonCareerEnrollmentsPanel';
 import { PersonAcademicRecordsPanel } from './PersonAcademicRecordsPanel';
+import { PersonRolesPanel } from './PersonRolesPanel';
 
 export function PersonDetailPage() {
   const { personId = '' } = useParams();
@@ -278,6 +279,7 @@ export function PersonDetailPage() {
               onFeedback={setFeedback}
               person={person}
             />
+            <PersonRolesPanel actorRoles={actorRoles} person={person} />
 
             {teacherRole ? (
               <div className="detail-panel action-panel">

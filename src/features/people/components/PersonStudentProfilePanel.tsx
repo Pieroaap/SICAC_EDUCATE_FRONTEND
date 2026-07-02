@@ -5,7 +5,6 @@ import type { PersonDetail, RoleCode } from '../../../api/types';
 import { getApiErrorMessage } from '../../../api/client';
 import { FormField } from '../../../components/FormField';
 import { Button } from '../../../components/ui/Button';
-import { Input } from '../../../components/ui/Input';
 import { cn } from '../../../lib/cn';
 import { updateStudentProfile } from '../api/peopleApi';
 import { canUpdateStudentProfile } from '../personActions';
@@ -138,25 +137,6 @@ export function PersonStudentProfilePanel({ actorRoles, onFeedback, person }: Pr
               <option key={option.value} value={option.value}>{option.label}</option>
             ))}
           </select>
-        </FormField>
-        <FormField htmlFor="studentAnioIngreso" label="Año de ingreso">
-          <Input
-            disabled={!canEdit || updateMutation.isPending}
-            id="studentAnioIngreso"
-            inputMode="numeric"
-            onChange={(event) => updateDraft('anioIngreso', Number(event.target.value))}
-            type="number"
-            value={editableProfile?.anioIngreso ?? ''}
-          />
-        </FormField>
-        <FormField htmlFor="studentPeriodoIngreso" label="Periodo de ingreso">
-          <Input
-            disabled={!canEdit || updateMutation.isPending}
-            id="studentPeriodoIngreso"
-            onChange={(event) => updateDraft('periodoIngreso', event.target.value)}
-            placeholder="2026-I"
-            value={editableProfile?.periodoIngreso ?? ''}
-          />
         </FormField>
         <FormField htmlFor="studentBeneficio" label="Beneficio">
           <select

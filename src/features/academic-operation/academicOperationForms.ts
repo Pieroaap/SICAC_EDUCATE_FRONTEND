@@ -23,7 +23,6 @@ export const authorizationSchema = z.object({
 
 export const careerRegistrationSchema = z.object({
   carreraId: uuid('Selecciona una carrera'),
-  planCurricularId: uuid('Selecciona un plan'),
   periodoInicioId: uuid('Selecciona el periodo de inicio'),
 });
 

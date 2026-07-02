@@ -66,7 +66,7 @@ export const getCareerRegistrations = async (personaId: string) =>
   })).data;
 
 export const createCareerRegistration = async (input: {
-  personaId: string; carreraId: string; planCurricularId: string;
+  personaId: string; carreraId: string;
   periodoInicioId: string;
 }) => (await api.post<CareerRegistration>('/inscripciones-carrera', input)).data;
 
