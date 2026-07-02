@@ -162,6 +162,7 @@ export type CurriculumPlan = {
   nombre: string;
   version: string;
   estado: ActiveState;
+  createdAt?: string;
 };
 
 export type Course = {

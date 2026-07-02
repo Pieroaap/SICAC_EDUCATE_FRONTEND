@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, ClipboardList, Plus, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { NavLink, useParams } from 'react-router-dom';
 import { getApiErrorMessage } from '../../../api/client';
@@ -10,10 +10,12 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { FormField } from '../../../components/FormField';
 import { StatusBadge } from '../../../components/StatusBadge';
+import { useDebouncedValue } from '../../../lib/useDebouncedValue';
 import { useAuth } from '../../auth/AuthProvider';
 import {
   getAcademicPeriods,
   getCareers,
+  getCourses,
   getCurriculumPlans,
   getPlanCourses,
 } from '../../academic-structure/api/academicStructureApi';
@@ -43,6 +45,15 @@ const tabs = [
   { entity: 'matriculas', label: 'Matrículas e historial' },
   { entity: 'excepciones', label: 'Excepciones' },
 ];
+
+function latestActivePlan<T extends { carreraId: string; estado: string; createdAt?: string; version: string }>(
+  plans: T[] | undefined,
+  careerId: string,
+) {
+  return plans
+    ?.filter((plan) => plan.carreraId === careerId && plan.estado === 'activo')
+    .sort((a, b) => (b.createdAt ?? b.version).localeCompare(a.createdAt ?? a.version))[0];
+}
 
 export function AcademicOperationPage() {
   const { entity = 'cursos-programados' } = useParams();
@@ -79,6 +90,7 @@ function ScheduledCoursesView() {
   const careers = useQuery({ queryKey: ['academic', 'careers'], queryFn: getCareers });
   const plans = useQuery({ queryKey: ['academic', 'plans'], queryFn: () => getCurriculumPlans() });
   const planCourses = useQuery({ queryKey: ['academic', 'plan-courses'], queryFn: () => getPlanCourses() });
+  const courses = useQuery({ queryKey: ['academic', 'courses'], queryFn: getCourses });
   const periods = useQuery({ queryKey: ['academic', 'periods'], queryFn: () => getAcademicPeriods() });
   const teachers = useQuery({
     queryKey: ['profiles', 'teachers', 'operation'],
@@ -92,17 +104,20 @@ function ScheduledCoursesView() {
     resolver: zodResolver(scheduledCourseSchema),
     defaultValues: {
       carreraId: '', planCurricularId: '', planCursoId: '',
-      periodoAcademicoId: '', profesorPersonaId: '', seccion: '',
+      periodoAcademicoId: '', profesorPersonaId: '',
     },
   });
   const careerId = useWatch({ control: form.control, name: 'carreraId' });
-  const planId = useWatch({ control: form.control, name: 'planCurricularId' });
+  const planId = latestActivePlan(plans.data, careerId)?.id ?? '';
+  useEffect(() => {
+    form.setValue('planCurricularId', planId, { shouldValidate: Boolean(careerId) });
+    form.setValue('planCursoId', '');
+  }, [careerId, form, planId]);
   const mutation = useMutation({
     mutationFn: (values: ScheduledCourseValues) => createScheduledCourse({
       planCursoId: values.planCursoId,
       periodoAcademicoId: values.periodoAcademicoId,
       profesorPersonaId: values.profesorPersonaId,
-      seccion: values.seccion,
     }),
     onSuccess: async () => {
       form.reset();
@@ -114,7 +129,7 @@ function ScheduledCoursesView() {
   return (
     <section className="operation-section">
       <div className="operation-section__heading">
-        <div><h2>Oferta del periodo</h2><p>Cada sección vincula un curso, periodo y docente activo.</p></div>
+        <div><h2>Oferta del periodo</h2><p>Cada curso vincula una carrera, periodo y docente activo.</p></div>
         <Button onClick={() => setShowForm((value) => !value)} type="button"><Plus size={16} />Programar curso</Button>
       </div>
       {showForm ? (
@@ -122,11 +137,8 @@ function ScheduledCoursesView() {
           <FormField error={form.formState.errors.carreraId?.message} htmlFor="scheduled-career" label="Carrera">
             <select className="form-select" id="scheduled-career" {...form.register('carreraId')}><option value="">Seleccionar</option>{careers.data?.filter((item) => item.estado === 'activo').map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select>
           </FormField>
-          <FormField error={form.formState.errors.planCurricularId?.message} htmlFor="scheduled-plan" label="Plan">
-            <select className="form-select" id="scheduled-plan" {...form.register('planCurricularId')}><option value="">Seleccionar</option>{plans.data?.filter((item) => item.carreraId === careerId && item.estado === 'activo').map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select>
-          </FormField>
-          <FormField error={form.formState.errors.planCursoId?.message} htmlFor="scheduled-course" label="Curso del plan">
-            <select className="form-select" id="scheduled-course" {...form.register('planCursoId')}><option value="">Seleccionar</option>{planCourses.data?.filter((item) => item.planCurricularId === planId && item.estado === 'activo').map((item) => <option key={item.id} value={item.id}>Ciclo {item.ciclo} · orden {item.orden}</option>)}</select>
+          <FormField error={form.formState.errors.planCursoId?.message} htmlFor="scheduled-course" label="Curso">
+            <select className="form-select" disabled={!planId} id="scheduled-course" {...form.register('planCursoId')}><option value="">Seleccionar</option>{planCourses.data?.filter((item) => item.planCurricularId === planId && item.estado === 'activo').map((item) => <option key={item.id} value={item.id}>Ciclo {item.ciclo} · {courses.data?.find((course) => course.id === item.cursoId)?.nombre ?? 'Curso'}</option>)}</select>
           </FormField>
           <FormField error={form.formState.errors.periodoAcademicoId?.message} htmlFor="scheduled-period" label="Periodo">
             <select className="form-select" id="scheduled-period" {...form.register('periodoAcademicoId')}><option value="">Seleccionar</option>{periods.data?.filter((item) => item.carreraId === careerId && item.estado === 'activo').map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select>
@@ -134,17 +146,16 @@ function ScheduledCoursesView() {
           <FormField error={form.formState.errors.profesorPersonaId?.message} htmlFor="scheduled-teacher" label="Profesor">
             <select className="form-select" id="scheduled-teacher" {...form.register('profesorPersonaId')}><option value="">Seleccionar</option>{teachers.data?.data.map((item) => <option key={item.id} value={item.id}>{item.apellidoPaterno}, {item.nombres}</option>)}</select>
           </FormField>
-          <FormField error={form.formState.errors.seccion?.message} htmlFor="scheduled-section" label="Sección"><Input id="scheduled-section" {...form.register('seccion')} /></FormField>
           <MutationActions error={mutation.error} pending={mutation.isPending} onCancel={() => setShowForm(false)} />
         </form>
       ) : null}
       <DataTable
-        columns={['Curso', 'Carrera y plan', 'Periodo', 'Docente', 'Sección', 'Estado']}
+        columns={['Curso', 'Carrera y plan', 'Periodo', 'Docente', 'Estado']}
         empty="No hay cursos programados."
         error={scheduled.isError}
         loading={scheduled.isPending}
       >
-        {scheduled.data?.map((row) => <tr key={row.id}><td><strong>{row.cursoNombre}</strong><span>{row.cursoCodigo} · ciclo {row.ciclo}</span></td><td>{row.carreraNombre}<small>{row.planNombre}</small></td><td>{row.periodoNombre}</td><td>{row.profesorApellidoPaterno}, {row.profesorNombres}</td><td>{row.seccion}</td><td><StatusBadge active={row.estado === 'activo'} /></td></tr>)}
+        {scheduled.data?.map((row) => <tr key={row.id}><td><strong>{row.cursoNombre}</strong><span>Ciclo {row.ciclo}</span></td><td>{row.carreraNombre}<small>{row.planNombre}</small></td><td>{row.periodoNombre}</td><td>{row.profesorApellidoPaterno}, {row.profesorNombres}</td><td><StatusBadge active={row.estado === 'activo'} /></td></tr>)}
       </DataTable>
     </section>
   );
@@ -154,26 +165,40 @@ function EnrollmentsView() {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState<CareerEnrollment | null>(null);
+  const [studentSearch, setStudentSearch] = useState('');
+  const debouncedStudentSearch = useDebouncedValue(studentSearch.trim(), 300);
   const careers = useQuery({ queryKey: ['academic', 'careers'], queryFn: getCareers });
   const plans = useQuery({ queryKey: ['academic', 'plans'], queryFn: () => getCurriculumPlans() });
   const periods = useQuery({ queryKey: ['academic', 'periods'], queryFn: () => getAcademicPeriods() });
   const students = useQuery({
-    queryKey: ['profiles', 'students', 'operation'],
-    queryFn: () => getStudents({ page: 1, pageSize: 20, estado: 'activo' }),
+    queryKey: ['profiles', 'students', 'operation', debouncedStudentSearch],
+    queryFn: () => getStudents({
+      page: 1,
+      pageSize: 20,
+      estado: 'activo',
+      search: debouncedStudentSearch || undefined,
+    }),
+    enabled: showForm,
   });
   const enrollments = useQuery({ queryKey: ['operation', 'enrollments'], queryFn: () => getEnrollments() });
   const form = useForm<EnrollmentValues>({
     resolver: zodResolver(enrollmentSchema),
     defaultValues: {
       personaId: '', carreraId: '', planCurricularId: '',
-      periodoAcademicoId: '', fechaMatricula: today, costo: '',
+      periodoAcademicoId: '', fechaMatricula: today,
     },
   });
   const careerId = useWatch({ control: form.control, name: 'carreraId' });
+  const selectedStudentId = useWatch({ control: form.control, name: 'personaId' });
+  const planId = latestActivePlan(plans.data, careerId)?.id ?? '';
+  useEffect(() => {
+    form.setValue('planCurricularId', planId, { shouldValidate: Boolean(careerId) });
+  }, [careerId, form, planId]);
   const mutation = useMutation({
-    mutationFn: ({ costo, ...values }: EnrollmentValues) => createEnrollment({ ...values, costo: costo || undefined }),
+    mutationFn: (values: EnrollmentValues) => createEnrollment(values),
     onSuccess: async () => {
-      form.reset({ personaId: '', carreraId: '', planCurricularId: '', periodoAcademicoId: '', fechaMatricula: today, costo: '' });
+      form.reset({ personaId: '', carreraId: '', planCurricularId: '', periodoAcademicoId: '', fechaMatricula: today });
+      setStudentSearch('');
       setShowForm(false);
       await queryClient.invalidateQueries({ queryKey: ['operation', 'enrollments'] });
     },
@@ -187,12 +212,15 @@ function EnrollmentsView() {
       </div>
       {showForm ? (
         <form className="operation-form" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
-          <FormField error={form.formState.errors.personaId?.message} htmlFor="student" label="Alumno"><select className="form-select" id="student" {...form.register('personaId')}><option value="">Seleccionar</option>{students.data?.data.map((item) => <option key={item.id} value={item.id}>{item.apellidos}, {item.nombres} · {item.dni}</option>)}</select></FormField>
+          <FormField error={form.formState.errors.personaId?.message} htmlFor="student-search" label="Alumno">
+            <div className="student-search">
+              <Input id="student-search" onChange={(event) => { setStudentSearch(event.target.value); form.setValue('personaId', '', { shouldValidate: false }); }} placeholder="Escribe apellidos, nombres o DNI" value={studentSearch} />
+              {studentSearch && !selectedStudentId ? <div className="student-search__results">{students.isFetching ? <span>Buscando…</span> : students.data?.data.map((item) => <button key={item.id} onClick={() => { form.setValue('personaId', item.id, { shouldValidate: true }); setStudentSearch(`${item.apellidos}, ${item.nombres} · ${item.dni}`); }} type="button"><strong>{item.apellidos}, {item.nombres}</strong><small>{item.dni}</small></button>)}</div> : null}
+            </div>
+          </FormField>
           <FormField error={form.formState.errors.carreraId?.message} htmlFor="enrollment-career" label="Carrera"><select className="form-select" id="enrollment-career" {...form.register('carreraId')}><option value="">Seleccionar</option>{careers.data?.filter((item) => item.estado === 'activo').map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></FormField>
-          <FormField error={form.formState.errors.planCurricularId?.message} htmlFor="enrollment-plan" label="Plan"><select className="form-select" id="enrollment-plan" {...form.register('planCurricularId')}><option value="">Seleccionar</option>{plans.data?.filter((item) => item.carreraId === careerId && item.estado === 'activo').map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></FormField>
           <FormField error={form.formState.errors.periodoAcademicoId?.message} htmlFor="enrollment-period" label="Periodo"><select className="form-select" id="enrollment-period" {...form.register('periodoAcademicoId')}><option value="">Seleccionar</option>{periods.data?.filter((item) => item.carreraId === careerId && item.estado === 'activo').map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></FormField>
           <FormField error={form.formState.errors.fechaMatricula?.message} htmlFor="enrollment-date" label="Fecha"><Input id="enrollment-date" type="date" {...form.register('fechaMatricula')} /></FormField>
-          <FormField error={form.formState.errors.costo?.message} htmlFor="enrollment-cost" label="Costo (opcional)"><Input id="enrollment-cost" inputMode="decimal" {...form.register('costo')} /></FormField>
           <MutationActions error={mutation.error} pending={mutation.isPending} onCancel={() => setShowForm(false)} />
         </form>
       ) : null}
@@ -248,7 +276,7 @@ function EnrollmentDetail({ enrollment, onClose }: { enrollment: CareerEnrollmen
       <header><div><p className="eyebrow">{enrollment.periodoNombre}</p><h2>{enrollment.persona.apellidoPaterno}, {enrollment.persona.nombres}</h2><p>{enrollment.carreraNombre} · {enrollment.planNombre}</p></div><Button aria-label="Cerrar detalle" onClick={onClose} type="button" variant="ghost"><X size={18} /></Button></header>
       <div className="operation-detail__grid">
         <section><h3>Cursos inscritos</h3>{courses.data?.length ? <ul className="trajectory-list">{courses.data.map((item) => <li key={item.inscripcion.id}><span>{item.ciclo}</span><div><strong>{item.cursoNombre}</strong><small>{item.cursoCodigo} · {item.inscripcion.fechaInscripcion}</small></div></li>)}</ul> : <p className="operation-empty">Aún no hay cursos inscritos.</p>}</section>
-        <section><h3>Inscribir curso</h3><select className="form-select" onChange={(event) => setCourseId(event.target.value)} value={courseId}><option value="">Seleccionar curso programado</option>{available.map((item) => <option key={item.id} value={item.id}>{item.cursoCodigo} · {item.cursoNombre} · sección {item.seccion}</option>)}</select><Button disabled={!courseId || enroll.isPending} onClick={() => enroll.mutate()} type="button">Inscribir</Button>{enroll.error ? <div className="error-banner">{getApiErrorMessage(enroll.error, 'No se pudo inscribir.')}</div> : null}<textarea className="form-textarea" onChange={(event) => setReason(event.target.value)} placeholder="Si no cumple prerrequisitos, explica el motivo de la excepción." value={reason} /><Button disabled={!courseId || request.isPending} onClick={() => request.mutate()} type="button" variant="secondary">Solicitar excepción</Button>{request.error ? <div className="error-banner">{getApiErrorMessage(request.error, 'No se pudo solicitar la excepción.')}</div> : null}</section>
+        <section><h3>Inscribir curso</h3><select className="form-select" onChange={(event) => setCourseId(event.target.value)} value={courseId}><option value="">Seleccionar curso programado</option>{available.map((item) => <option key={item.id} value={item.id}>Ciclo {item.ciclo} · {item.cursoNombre}</option>)}</select><Button disabled={!courseId || enroll.isPending} onClick={() => enroll.mutate()} type="button">Inscribir</Button>{enroll.error ? <div className="error-banner">{getApiErrorMessage(enroll.error, 'No se pudo inscribir.')}</div> : null}<textarea className="form-textarea" onChange={(event) => setReason(event.target.value)} placeholder="Si no cumple prerrequisitos, explica el motivo de la excepción." value={reason} /><Button disabled={!courseId || request.isPending} onClick={() => request.mutate()} type="button" variant="secondary">Solicitar excepción</Button>{request.error ? <div className="error-banner">{getApiErrorMessage(request.error, 'No se pudo solicitar la excepción.')}</div> : null}</section>
       </div>
       {authorizations.data?.length ? <section><h3>Solicitudes</h3><div className="authorization-strip">{authorizations.data.map((item) => <span className={`authorization-state is-${item.estado}`} key={item.id}>{item.cursoCodigo} · {item.estado}</span>)}</div></section> : null}
     </aside>
@@ -272,7 +300,7 @@ function AuthorizationsView() {
     <section className="operation-section">
       <div className="operation-section__heading"><div><h2>Bandeja de excepciones</h2><p>La decisión académica queda registrada y no inscribe automáticamente al alumno.</p></div><label className="select-filter"><span>Estado</span><select className="form-select" onChange={(event) => setStatus(event.target.value as PrerequisiteAuthorization['estado'])} value={status}><option value="pendiente">Pendientes</option><option value="aprobada">Aprobadas</option><option value="rechazada">Rechazadas</option></select></label></div>
       <DataTable columns={['Alumno', 'Curso', 'Periodo', 'Motivo', 'Estado', 'Decisión']} empty="No hay solicitudes en este estado." error={authorizations.isError} loading={authorizations.isPending}>
-        {authorizations.data?.map((row) => <tr key={row.id}><td><strong>{row.alumnoApellidoPaterno}, {row.alumnoNombres}</strong><span>{row.alumnoDocumento}</span></td><td>{row.cursoNombre}<small>{row.cursoCodigo} · sección {row.seccion}</small></td><td>{row.periodoNombre}</td><td className="operation-reason">{row.motivo}</td><td><span className={`authorization-state is-${row.estado}`}>{row.estado}</span></td><td>{canResolve && row.estado === 'pendiente' ? <div className="decision-actions"><Button aria-label="Aprobar" disabled={mutation.isPending} onClick={() => mutation.mutate({ id: row.id, estado: 'aprobada' })} type="button" variant="ghost"><Check size={16} /></Button><Button aria-label="Rechazar" disabled={mutation.isPending} onClick={() => mutation.mutate({ id: row.id, estado: 'rechazada' })} type="button" variant="ghost"><X size={16} /></Button></div> : '—'}</td></tr>)}
+        {authorizations.data?.map((row) => <tr key={row.id}><td><strong>{row.alumnoApellidoPaterno}, {row.alumnoNombres}</strong><span>{row.alumnoDocumento}</span></td><td>{row.cursoNombre}<small>{row.cursoCodigo}</small></td><td>{row.periodoNombre}</td><td className="operation-reason">{row.motivo}</td><td><span className={`authorization-state is-${row.estado}`}>{row.estado}</span></td><td>{canResolve && row.estado === 'pendiente' ? <div className="decision-actions"><Button aria-label="Aprobar" disabled={mutation.isPending} onClick={() => mutation.mutate({ id: row.id, estado: 'aprobada' })} type="button" variant="ghost"><Check size={16} /></Button><Button aria-label="Rechazar" disabled={mutation.isPending} onClick={() => mutation.mutate({ id: row.id, estado: 'rechazada' })} type="button" variant="ghost"><X size={16} /></Button></div> : '—'}</td></tr>)}
       </DataTable>
     </section>
   );

@@ -11,7 +11,7 @@ export const getScheduledCourses = async (filters?: {
 }) => (await api.get<ScheduledCourse[]>('/cursos-programados', { params: filters })).data;
 
 export const createScheduledCourse = async (input: {
-  planCursoId: string; periodoAcademicoId: string; profesorPersonaId: string; seccion: string;
+  planCursoId: string; periodoAcademicoId: string; profesorPersonaId: string;
 }) => (await api.post<ScheduledCourse>('/cursos-programados', input)).data;
 
 export const getEnrollments = async (filters?: {
@@ -20,7 +20,7 @@ export const getEnrollments = async (filters?: {
 
 export const createEnrollment = async (input: {
   personaId: string; carreraId: string; planCurricularId: string;
-  periodoAcademicoId: string; fechaMatricula: string; costo?: string;
+  periodoAcademicoId: string; fechaMatricula: string;
 }) => (await api.post('/matriculas/carrera', input)).data;
 
 export const getEnrollmentCourses = async (id: string) =>

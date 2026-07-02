@@ -8,7 +8,6 @@ export const scheduledCourseSchema = z.object({
   planCursoId: uuid('Selecciona un curso'),
   periodoAcademicoId: uuid('Selecciona un periodo'),
   profesorPersonaId: uuid('Selecciona un profesor'),
-  seccion: z.string().trim().min(1, 'Campo obligatorio').max(30),
 });
 
 export const enrollmentSchema = z.object({
@@ -17,7 +16,6 @@ export const enrollmentSchema = z.object({
   planCurricularId: uuid('Selecciona un plan'),
   periodoAcademicoId: uuid('Selecciona un periodo'),
   fechaMatricula: z.string().min(1, 'Campo obligatorio'),
-  costo: z.string().trim().regex(/^\d+(\.\d{1,2})?$/, 'Importe inválido').or(z.literal('')),
 });
 
 export const authorizationSchema = z.object({
