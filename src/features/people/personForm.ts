@@ -41,8 +41,8 @@ export const createPersonSchema = personSchema.extend({
   ]),
   alumnoPerfil: studentProfileSchema.optional(),
   initialRegistration: z.object({
-    carreraId: z.uuid('Selecciona una carrera'),
-    periodoInicioId: z.uuid('Selecciona un periodo de inicio'),
+    carreraId: z.string(),
+    periodoInicioId: z.string(),
   }).optional(),
   includeTutor: z.boolean(),
   tutor: guardianSchema.optional(),
@@ -54,8 +54,21 @@ export const createPersonSchema = personSchema.extend({
       path: ['alumnoPerfil'],
     });
   }
-  if (value.initialRole === 'ALUMNO' && !value.initialRegistration) {
-    ctx.addIssue({ code: 'custom', message: 'Completa la inscripción inicial', path: ['initialRegistration'] });
+  if (value.initialRole === 'ALUMNO') {
+    if (!z.uuid().safeParse(value.initialRegistration?.carreraId).success) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Selecciona una carrera',
+        path: ['initialRegistration', 'carreraId'],
+      });
+    }
+    if (!z.uuid().safeParse(value.initialRegistration?.periodoInicioId).success) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Selecciona un periodo de inicio',
+        path: ['initialRegistration', 'periodoInicioId'],
+      });
+    }
   }
   if (value.includeTutor && !value.tutor) {
     ctx.addIssue({

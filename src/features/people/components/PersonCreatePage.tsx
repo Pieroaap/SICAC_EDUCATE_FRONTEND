@@ -13,6 +13,7 @@ import {
   createPersonSchema,
   emptyCreatePersonValues,
   emptyPersonValues,
+  emptyStudentProfileValues,
   toCreatePersonPayload,
   type CreatePersonFormInput,
   type CreatePersonValues,
@@ -69,6 +70,7 @@ export function PersonCreatePage() {
   const {
     register,
     control,
+    getValues,
     handleSubmit,
     setValue,
     formState: { errors },
@@ -89,6 +91,21 @@ export function PersonCreatePage() {
     queryFn: () => getAcademicPeriods({ carreraId: careerId }),
     enabled: Boolean(careerId),
   });
+  useEffect(() => {
+    if (initialRole !== 'ALUMNO') {
+      setValue('alumnoPerfil', undefined);
+      setValue('initialRegistration', undefined);
+      setValue('includeTutor', false);
+      setValue('tutor', undefined);
+      return;
+    }
+    if (!getValues('alumnoPerfil')) {
+      setValue('alumnoPerfil', { ...emptyStudentProfileValues });
+    }
+    if (!getValues('initialRegistration')) {
+      setValue('initialRegistration', { carreraId: '', periodoInicioId: '' });
+    }
+  }, [getValues, initialRole, setValue]);
   const today = new Date().toISOString().slice(0, 10);
   const currentPeriod = periods.data?.find((period) => (
     period.fechaInicio <= today && period.fechaFin >= today
@@ -143,8 +160,8 @@ export function PersonCreatePage() {
       <header className="page-heading">
         <div>
           <p className="eyebrow">Identidad</p>
-          <h1>{getContextTitle(defaultInitialRole)}</h1>
-          <p>{getContextDescription(defaultInitialRole)}</p>
+          <h1>{getContextTitle(initialRole)}</h1>
+          <p>{getContextDescription(initialRole)}</p>
         </div>
       </header>
 

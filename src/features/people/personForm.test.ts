@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  createPersonSchema,
   emptyCreatePersonValues,
   emptyPersonValues,
   toCreatePersonPayload,
@@ -110,5 +111,17 @@ describe('personForm helpers', () => {
       alumnoPerfil: undefined,
       tutor: undefined,
     });
+  });
+
+  it('accepts a non-student role with empty hidden registration fields', () => {
+    const result = createPersonSchema.safeParse({
+      ...emptyCreatePersonValues,
+      initialRole: 'GESTOR_ACADEMICO',
+      numeroDocumento: '71629613',
+      nombres: 'Astrid',
+      apellidoPaterno: 'Ramos',
+    });
+
+    expect(result.success).toBe(true);
   });
 });
