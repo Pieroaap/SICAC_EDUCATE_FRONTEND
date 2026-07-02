@@ -1,13 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, X } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { getApiErrorMessage } from '../../../api/client';
 import type { RoleCode } from '../../../api/types';
 import { FormField } from '../../../components/FormField';
 import { Button } from '../../../components/ui/Button';
-import { Input } from '../../../components/ui/Input';
 import {
   careerRegistrationSchema,
   type CareerRegistrationValues,
@@ -19,10 +18,11 @@ import {
 } from '../../academic-operation/api/academicOperationApi';
 import {
   getCareers,
+  getAcademicPeriods,
   getCurriculumPlans,
 } from '../../academic-structure/api/academicStructureApi';
 
-const today = new Date().toISOString().slice(0, 10);
+const periodOrder = { I: 1, II: 2, III: 3 } as const;
 
 export function PersonCareerEnrollmentsPanel({
   actorRoles,
@@ -36,7 +36,7 @@ export function PersonCareerEnrollmentsPanel({
   const canWrite = actorRoles.some((role) => role === 'ADMINISTRADOR_SISTEMA' || role === 'GESTOR_ACADEMICO');
   const form = useForm<CareerRegistrationValues>({
     resolver: zodResolver(careerRegistrationSchema),
-    defaultValues: { carreraId: '', planCurricularId: '', fechaInicio: today, cicloInicio: 1 },
+    defaultValues: { carreraId: '', planCurricularId: '', periodoInicioId: '' },
   });
   const careerId = useWatch({ control: form.control, name: 'carreraId' });
   const registrations = useQuery({
@@ -45,10 +45,31 @@ export function PersonCareerEnrollmentsPanel({
   });
   const careers = useQuery({ queryKey: ['academic', 'careers'], queryFn: getCareers });
   const plans = useQuery({ queryKey: ['academic', 'plans'], queryFn: () => getCurriculumPlans() });
+  const periods = useQuery({
+    queryKey: ['academic', 'periods', careerId],
+    queryFn: () => getAcademicPeriods({ carreraId: careerId }),
+    enabled: Boolean(careerId),
+  });
+  const today = new Date().toISOString().slice(0, 10);
+  const currentPeriod = periods.data?.find((period) => (
+    period.fechaInicio <= today && period.fechaFin >= today
+  ));
+  const eligiblePeriods = currentPeriod
+    ? periods.data?.filter((period) => (
+      period.anio > currentPeriod.anio
+      || (period.anio === currentPeriod.anio
+        && periodOrder[period.periodo] >= periodOrder[currentPeriod.periodo])
+    )).sort((left, right) => (
+      left.anio - right.anio || periodOrder[left.periodo] - periodOrder[right.periodo]
+    )) ?? []
+    : [];
+  useEffect(() => {
+    form.setValue('periodoInicioId', '');
+  }, [careerId, form]);
   const create = useMutation({
     mutationFn: (values: CareerRegistrationValues) => createCareerRegistration({ ...values, personaId: personId }),
     onSuccess: async () => {
-      form.reset({ carreraId: '', planCurricularId: '', fechaInicio: today, cicloInicio: 1 });
+      form.reset({ carreraId: '', planCurricularId: '', periodoInicioId: '' });
       setShowForm(false);
       await queryClient.invalidateQueries({ queryKey: ['career-registrations', personId] });
     },
@@ -80,7 +101,7 @@ export function PersonCareerEnrollmentsPanel({
           {registrations.data.data.map((item) => (
             <li key={item.id}>
               <div><strong>{item.carreraNombre}</strong><span>{item.estado}</span></div>
-              <small>{item.planNombre} · Inicio {item.fechaInicio} · Ciclo {item.cicloInicio}</small>
+              <small>{item.planNombre} · Inicio {item.periodoInicioAnio}-{item.periodoInicioNumero}</small>
               {canWrite ? (
                 <Button
                   disabled={changeState.isPending}
@@ -127,11 +148,16 @@ export function PersonCareerEnrollmentsPanel({
               ))}
             </select>
           </FormField>
-          <FormField error={form.formState.errors.fechaInicio?.message} htmlFor="registration-date" label="Fecha de inicio">
-            <Input id="registration-date" type="date" {...form.register('fechaInicio')} />
-          </FormField>
-          <FormField error={form.formState.errors.cicloInicio?.message} htmlFor="registration-cycle" label="Ciclo de inicio">
-            <Input id="registration-cycle" min={1} max={20} type="number" {...form.register('cicloInicio', { valueAsNumber: true })} />
+          <FormField error={form.formState.errors.periodoInicioId?.message} htmlFor="registration-period" label="Periodo de inicio">
+            <select className="form-select" id="registration-period" {...form.register('periodoInicioId')}>
+              <option value="">Seleccionar</option>
+              {eligiblePeriods.map((period) => (
+                <option key={period.id} value={period.id}>{period.nombre}</option>
+              ))}
+            </select>
+            {careerId && !periods.isPending && !currentPeriod ? (
+              <small>La carrera no tiene un periodo académico vigente.</small>
+            ) : null}
           </FormField>
             <div className="operation-form__actions">
               {create.error ? <div className="error-banner">{getApiErrorMessage(create.error, 'No se pudo crear la inscripción.')}</div> : null}

@@ -35,12 +35,12 @@ describe('formularios de operación académica', () => {
     expect(authorizationSchema.safeParse({ motivo: 'breve' }).success).toBe(false);
     expect(authorizationSchema.safeParse({ motivo: 'Sustento académico documentado' }).success).toBe(true);
   });
-  it('valida ciclo y fecha de la inscripción permanente', () => {
+  it('exige un periodo de inicio para la inscripción permanente', () => {
     expect(careerRegistrationSchema.safeParse({
-      carreraId: id, planCurricularId: id, fechaInicio: '2026-07-02', cicloInicio: 1,
+      carreraId: id, planCurricularId: id, periodoInicioId: id,
     }).success).toBe(true);
     expect(careerRegistrationSchema.safeParse({
-      carreraId: id, planCurricularId: id, fechaInicio: '2026-07-02', cicloInicio: 0,
+      carreraId: id, planCurricularId: id, periodoInicioId: '',
     }).success).toBe(false);
   });
 

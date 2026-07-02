@@ -1235,6 +1235,11 @@ button:disabled { cursor: default; }
   .operation-detail__grid { grid-template-columns: 1fr; }
   .operation-section__heading { align-items: stretch; flex-direction: column; }
 }
+@media (max-width: 1120px) {
+  .academic-history-grid {
+    grid-template-columns: 1fr;
+  }
+}
 .academic-split {
   display: grid;
   grid-template-columns: minmax(320px, 0.58fr) minmax(0, 1fr);

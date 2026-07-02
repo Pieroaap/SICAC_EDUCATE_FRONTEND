@@ -67,7 +67,7 @@ export const getCareerRegistrations = async (personaId: string) =>
 
 export const createCareerRegistration = async (input: {
   personaId: string; carreraId: string; planCurricularId: string;
-  fechaInicio: string; cicloInicio: number;
+  periodoInicioId: string;
 }) => (await api.post<CareerRegistration>('/inscripciones-carrera', input)).data;
 
 export const updateCareerRegistrationState = async (id: string, estado: 'activo' | 'inactivo') =>

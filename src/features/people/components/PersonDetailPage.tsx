@@ -350,7 +350,7 @@ export function PersonDetailPage() {
                   <p>Inscripciones permanentes y cursos históricos reconocidos.</p>
                 </div>
               </header>
-              <div className="detail-grid">
+              <div className="detail-grid academic-history-grid">
                 <PersonCareerEnrollmentsPanel actorRoles={actorRoles} personId={person.id} />
                 <PersonAcademicRecordsPanel actorRoles={actorRoles} personId={person.id} />
               </div>

@@ -291,8 +291,10 @@ export type CareerRegistration = {
   carreraNombre: string;
   planCurricularId: string;
   planNombre: string;
-  fechaInicio: string;
-  cicloInicio: number;
+  periodoInicioId: string;
+  periodoInicioNombre: string;
+  periodoInicioAnio: number;
+  periodoInicioNumero: 'I' | 'II' | 'III';
   estado: ActiveState;
   createdAt: string;
 };

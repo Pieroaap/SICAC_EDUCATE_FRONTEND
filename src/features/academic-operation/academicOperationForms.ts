@@ -24,8 +24,7 @@ export const authorizationSchema = z.object({
 export const careerRegistrationSchema = z.object({
   carreraId: uuid('Selecciona una carrera'),
   planCurricularId: uuid('Selecciona un plan'),
-  fechaInicio: z.iso.date('Indica una fecha válida'),
-  cicloInicio: z.number().int().min(1, 'El ciclo mínimo es 1').max(20, 'El ciclo máximo es 20'),
+  periodoInicioId: uuid('Selecciona el periodo de inicio'),
 });
 
 export const academicRecordSchema = z.object({
