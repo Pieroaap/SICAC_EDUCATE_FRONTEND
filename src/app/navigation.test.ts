@@ -4,7 +4,7 @@ import { getNavigationGroups } from './navigation';
 describe('getNavigationGroups', () => {
   it('oculta el módulo de identidad para un profesor sin otro rol', () => {
     expect(getNavigationGroups(['PROFESOR']).map((group) => group.label))
-      .toEqual(['Espacio de trabajo']);
+      .toEqual(['Espacio de trabajo', 'Docencia']);
   });
 
   it('muestra una sola vez cada opción al combinar roles gestores', () => {
@@ -23,6 +23,10 @@ describe('getNavigationGroups', () => {
       'Cursos programados',
       'Matrículas e historial',
       'Excepciones',
+      'Talleres',
+      'Evaluación académica',
+      'Asistencia',
+      'Reactivaciones',
     ]);
   });
 });

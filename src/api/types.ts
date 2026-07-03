@@ -79,6 +79,7 @@ export type PersonDetail = Omit<PersonListItem, 'roles'> & {
     periodoIngreso: string;
     beneficio: 'becado' | 'credito' | 'becado_credito' | 'normal';
     tipoBeneficio: 'regular' | 'media_beca' | 'tercio_beca' | 'especial' | 'beca_completa';
+    condicionMedica: string | null;
   } | null;
   roles: Array<{
     codigo: RoleCode;
@@ -321,4 +322,229 @@ export type BulkEnrollmentCandidate = {
   nombres: string;
   apellidoPaterno: string;
   apellidoMaterno: string | null;
+};
+
+export type LetterGrade = 'A' | 'B' | 'C' | 'D';
+
+export type EvaluationCourse = {
+  id: string;
+  estado: ActiveState;
+  cursoCodigo: string;
+  cursoNombre: string;
+  ciclo: number;
+  carreraNombre: string;
+  planNombre: string;
+  periodoAcademicoId: string;
+  periodoNombre: string;
+  profesorPersonaId: string;
+  profesorNombres: string;
+  profesorApellidoPaterno: string;
+  profesorApellidoMaterno: string | null;
+  actaEstado: 'borrador' | 'publicada';
+};
+
+export type EvaluationComponent = {
+  id: string;
+  cursoProgramadoId: string;
+  nombre: string;
+  porcentaje: string;
+  orden: number;
+};
+
+export type GradebookGrade = {
+  id: string;
+  componenteEvaluacionId: string;
+  matriculaCursoProgramadoId: string;
+  nota: string;
+  observacion: string | null;
+};
+
+export type Gradebook = {
+  course: {
+    id: string;
+    planCursoId: string;
+    periodoAcademicoId: string;
+    cursoCodigo: string;
+    cursoNombre: string;
+    periodoNombre: string;
+    profesorPersonaId: string;
+    profesorNombres: string;
+    profesorApellidoPaterno: string;
+    profesorApellidoMaterno: string | null;
+  };
+  acta: {
+    estado: 'borrador' | 'publicada';
+    publicadaAt: string | null;
+    publicadaPor: string | null;
+  };
+  components: EvaluationComponent[];
+  students: Array<{
+    matriculaCursoProgramadoId: string;
+    personaId: string;
+    dni: string;
+    nombres: string;
+    apellidoPaterno: string;
+    apellidoMaterno: string | null;
+    grades: GradebookGrade[];
+  }>;
+};
+
+export type AcademicAct = {
+  acta: {
+    id: string;
+    estado: 'publicada';
+    publicadaAt: string;
+    publicadaPor: string;
+  };
+  results: Array<{
+    personaId: string;
+    dni: string;
+    nombres: string;
+    apellidoPaterno: string;
+    apellidoMaterno: string | null;
+    notaFinal: string;
+    letra: LetterGrade;
+    resultado: 'aprobado' | 'desaprobado';
+  }>;
+};
+
+export type RegularAcademicHistoryItem = {
+  id: string;
+  personaId: string;
+  cursoProgramadoId: string;
+  cursoCodigo: string;
+  cursoNombre: string;
+  ciclo: number;
+  periodoNombre: string;
+  notaFinal: string;
+  letra: LetterGrade;
+  resultado: 'aprobado' | 'desaprobado';
+  publicadaAt: string;
+};
+
+export type AttendanceState = 'presente' | 'tardanza' | 'falta' | 'justificada';
+
+export type AttendanceCourse = {
+  id: string;
+  cursoCodigo: string;
+  cursoNombre: string;
+  ciclo: number;
+  carreraNombre: string;
+  planNombre: string;
+  periodoAcademicoId: string;
+  periodoNombre: string;
+  fechaInicio: string;
+  fechaFin: string;
+  profesorPersonaId: string;
+  profesorNombres: string;
+  profesorApellidoPaterno: string;
+  profesorApellidoMaterno: string | null;
+};
+
+export type AttendanceSummary = {
+  absences: number;
+  lateArrivals: number;
+  equivalentAbsences: number;
+  alert: boolean;
+  withdrawn: boolean;
+};
+
+export type AttendanceBook = {
+  course: {
+    id: string;
+    professorId: string;
+    periodState: 'activo' | 'culminado';
+    startDate: string;
+    endDate: string;
+    periodName: string;
+    courseCode: string;
+    courseName: string;
+  };
+  date: string;
+  students: Array<{
+    enrollmentId: string;
+    enrollmentState: 'activo' | 'retirado' | 'completado' | 'anulado';
+    personId: string;
+    dni: string;
+    nombres: string;
+    apellidoPaterno: string;
+    apellidoMaterno: string | null;
+    withdrawalId: string | null;
+    attendance: {
+      id: string;
+      estadoAsistencia: AttendanceState;
+      fecha: string;
+    } | null;
+    summary: AttendanceSummary;
+    eligibleForReactivation: boolean;
+    pendingRequestId: string | null;
+  }>;
+};
+
+export type AttendanceReactivationRequest = {
+  id: string;
+  estado: 'pendiente' | 'aprobada' | 'rechazada';
+  motivo: string;
+  observacionResolucion: string | null;
+  createdAt: string;
+  resueltaAt: string | null;
+  retiroAsistenciaId: string;
+  enrollmentId: string;
+  courseId: string;
+  cursoCodigo: string;
+  cursoNombre: string;
+  periodoNombre: string;
+  alumnoId: string;
+  alumnoDni: string;
+  alumnoNombres: string;
+  alumnoApellidoPaterno: string;
+  alumnoApellidoMaterno: string | null;
+  faltasAlRetiro: number;
+  tardanzasAlRetiro: number;
+  faltasEquivalentesAlRetiro: number;
+};
+
+export type Workshop = {
+  id: string;
+  codigo: string;
+  nombre: string;
+  descripcion: string | null;
+};
+export type WorkshopSchedule = {
+  id?: string;
+  dia: 'lunes' | 'martes' | 'miercoles' | 'jueves' | 'viernes' | 'sabado' | 'domingo';
+  horaInicio: string;
+  horaFin: string;
+};
+export type ScheduledWorkshopState = 'borrador' | 'abierto' | 'en_curso' | 'finalizado' | 'cancelado';
+export type ScheduledWorkshop = {
+  id: string;
+  tallerId: string;
+  tallerCodigo: string;
+  tallerNombre: string;
+  responsablePersonaId: string;
+  responsableNombres: string;
+  responsableApellidoPaterno: string;
+  fechaInicio: string;
+  fechaFin: string;
+  modalidad: 'presencial' | 'virtual' | 'hibrido';
+  ubicacion: string;
+  costo: string | null;
+  cupoMaximo: number;
+  inscritos: number;
+  vacantes: number;
+  estado: ScheduledWorkshopState;
+  horarios: WorkshopSchedule[];
+};
+export type WorkshopParticipant = {
+  id: string;
+  estado: 'activa' | 'retirada' | 'completada' | 'anulada';
+  fechaInscripcion: string;
+  personaId: string;
+  numeroDocumento: string;
+  nombres: string;
+  apellidoPaterno: string;
+  apellidoMaterno: string | null;
+  correo: string | null;
+  telefono: string | null;
 };

@@ -1,6 +1,5 @@
 import { z } from 'zod';
-import type { PersonDetail, RoleCode, StudentState } from '../../api/types';
-import type { StudentBenefit, StudentBenefitType } from './studentProfileOptions';
+import type { PersonDetail, RoleCode } from '../../api/types';
 
 const optionalText = (max: number) => z.string().trim().max(max).optional();
 
@@ -24,6 +23,7 @@ export const studentProfileSchema = z.object({
   periodoIngreso: z.string().trim().regex(/^[0-9]{4}\s*-\s*(I|II|III)$/, 'Usa formato 2026-I, 2026-II o 2026-III'),
   beneficio: z.enum(['becado', 'credito', 'becado_credito', 'normal']),
   tipoBeneficio: z.enum(['regular', 'media_beca', 'tercio_beca', 'especial', 'beca_completa']),
+  condicionMedica: z.string().trim().max(1000, 'Máximo 1000 caracteres').optional(),
 });
 
 const guardianSchema = personSchema.extend({
@@ -100,6 +100,7 @@ export const emptyStudentProfileValues: StudentProfileValues = {
   periodoIngreso: `${new Date().getFullYear()}-I`,
   beneficio: 'normal',
   tipoBeneficio: 'regular',
+  condicionMedica: '',
 };
 
 export const emptyCreatePersonValues: CreatePersonValues = {
@@ -175,16 +176,11 @@ export function toCreatePersonPayload(values: CreatePersonValues) {
   };
 }
 
-export function toStudentProfilePayload(values: {
-  estado: StudentState;
-  anioIngreso: number;
-  periodoIngreso: string;
-  beneficio: StudentBenefit;
-  tipoBeneficio: StudentBenefitType;
-}) {
+export function toStudentProfilePayload(values: StudentProfileValues) {
   return {
     ...values,
     periodoIngreso: values.periodoIngreso.trim().toUpperCase().replace(/\s*-\s*/, '-'),
+    condicionMedica: values.condicionMedica?.trim() || null,
   };
 }
 

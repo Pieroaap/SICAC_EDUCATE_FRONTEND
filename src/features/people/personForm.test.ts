@@ -7,6 +7,7 @@ import {
   toPersonFormValues,
   toPersonPayload,
   toPersonUpdatePayload,
+  toStudentProfilePayload,
 } from './personForm';
 
 describe('personForm helpers', () => {
@@ -82,6 +83,27 @@ describe('personForm helpers', () => {
       },
       tutor: undefined,
     });
+  });
+
+  it('normalizes an empty medical condition to null', () => {
+    expect(toStudentProfilePayload({
+      ...emptyCreatePersonValues.alumnoPerfil!,
+      condicionMedica: '   ',
+    }).condicionMedica).toBeNull();
+  });
+
+  it('rejects medical conditions longer than 1000 characters', () => {
+    const result = createPersonSchema.safeParse({
+      ...emptyCreatePersonValues,
+      numeroDocumento: '71629613',
+      nombres: 'Astrid',
+      apellidoPaterno: 'Ramos',
+      alumnoPerfil: {
+        ...emptyCreatePersonValues.alumnoPerfil!,
+        condicionMedica: 'a'.repeat(1001),
+      },
+    });
+    expect(result.success).toBe(false);
   });
 
   it('includes tutor data only when requested for student creation', () => {

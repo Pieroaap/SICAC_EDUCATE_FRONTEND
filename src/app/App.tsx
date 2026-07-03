@@ -25,6 +25,18 @@ const AcademicStructurePage = lazy(() => import('../features/academic-structure/
   .then((module) => ({ default: module.AcademicStructurePage })));
 const AcademicOperationPage = lazy(() => import('../features/academic-operation/components/AcademicOperationPage')
   .then((module) => ({ default: module.AcademicOperationPage })));
+const EvaluationCoursesPage = lazy(() => import('../features/academic-evaluation/components/EvaluationCoursesPage')
+  .then((module) => ({ default: module.EvaluationCoursesPage })));
+const GradebookPage = lazy(() => import('../features/academic-evaluation/components/GradebookPage')
+  .then((module) => ({ default: module.GradebookPage })));
+const AttendanceCoursesPage = lazy(() => import('../features/academic-attendance/components/AttendanceCoursesPage')
+  .then((module) => ({ default: module.AttendanceCoursesPage })));
+const AttendanceBookPage = lazy(() => import('../features/academic-attendance/components/AttendanceBookPage')
+  .then((module) => ({ default: module.AttendanceBookPage })));
+const ReactivationRequestsPage = lazy(() => import('../features/academic-attendance/components/ReactivationRequestsPage')
+  .then((module) => ({ default: module.ReactivationRequestsPage })));
+const WorkshopsPage = lazy(() => import('../features/workshops/components/WorkshopsPage')
+  .then((module) => ({ default: module.WorkshopsPage })));
 
 export function App() {
   return (
@@ -118,6 +130,54 @@ export function App() {
               </RequireRole>
             )}
             path="operacion/:entity"
+          />
+          <Route
+            element={(
+              <RequireRole allowed={['ADMINISTRADOR_SISTEMA', 'DIRECTOR_ACADEMICO', 'GESTOR_ACADEMICO', 'PROFESOR']}>
+                <EvaluationCoursesPage />
+              </RequireRole>
+            )}
+            path="evaluacion"
+          />
+          <Route
+            element={(
+              <RequireRole allowed={['ADMINISTRADOR_SISTEMA', 'DIRECTOR_ACADEMICO', 'GESTOR_ACADEMICO', 'PROFESOR']}>
+                <GradebookPage />
+              </RequireRole>
+            )}
+            path="evaluacion/cursos/:courseId"
+          />
+          <Route
+            element={(
+              <RequireRole allowed={['ADMINISTRADOR_SISTEMA', 'DIRECTOR_ACADEMICO', 'GESTOR_ACADEMICO', 'PROFESOR']}>
+                <AttendanceCoursesPage />
+              </RequireRole>
+            )}
+            path="asistencia"
+          />
+          <Route
+            element={(
+              <RequireRole allowed={['ADMINISTRADOR_SISTEMA', 'DIRECTOR_ACADEMICO', 'GESTOR_ACADEMICO', 'PROFESOR']}>
+                <AttendanceBookPage />
+              </RequireRole>
+            )}
+            path="asistencia/cursos/:courseId"
+          />
+          <Route
+            element={(
+              <RequireRole allowed={['DIRECTOR_ACADEMICO', 'GESTOR_ACADEMICO']}>
+                <ReactivationRequestsPage />
+              </RequireRole>
+            )}
+            path="asistencia/reactivaciones"
+          />
+          <Route
+            element={(
+              <RequireRole allowed={['ADMINISTRADOR_SISTEMA', 'DIRECTOR_ACADEMICO', 'GESTOR_ACADEMICO']}>
+                <WorkshopsPage />
+              </RequireRole>
+            )}
+            path="talleres"
           />
           <Route element={<ForbiddenPage />} path="sin-permiso" />
         </Route>

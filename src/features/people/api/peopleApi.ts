@@ -95,6 +95,7 @@ export async function updateStudentProfile(
     periodoIngreso: string;
     beneficio: 'becado' | 'credito' | 'becado_credito' | 'normal';
     tipoBeneficio: 'regular' | 'media_beca' | 'tercio_beca' | 'especial' | 'beca_completa';
+    condicionMedica?: string | null;
   }>,
 ) {
   const { data } = await api.patch(`/alumnos/${personId}`, input);

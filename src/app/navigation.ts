@@ -17,6 +17,8 @@ const identityManagers: RoleCode[] = [
   'GESTOR_ACADEMICO',
 ];
 const exceptionManagers: RoleCode[] = ['ADMINISTRADOR_SISTEMA', 'DIRECTOR_ACADEMICO'];
+const evaluationRoles: RoleCode[] = [...identityManagers, 'PROFESOR'];
+const attendanceApprovers: RoleCode[] = ['DIRECTOR_ACADEMICO', 'GESTOR_ACADEMICO'];
 
 const navigation: NavigationGroup[] = [
   {
@@ -46,6 +48,15 @@ const navigation: NavigationGroup[] = [
       { label: 'Cursos programados', to: '/operacion/cursos-programados', allowed: identityManagers },
       { label: 'Matrículas e historial', to: '/operacion/matriculas', allowed: identityManagers },
       { label: 'Excepciones', to: '/operacion/excepciones', allowed: exceptionManagers },
+      { label: 'Talleres', to: '/talleres', allowed: identityManagers },
+    ],
+  },
+  {
+    label: 'Docencia',
+    items: [
+      { label: 'Evaluación académica', to: '/evaluacion', allowed: evaluationRoles },
+      { label: 'Asistencia', to: '/asistencia', allowed: evaluationRoles },
+      { label: 'Reactivaciones', to: '/asistencia/reactivaciones', allowed: attendanceApprovers },
     ],
   },
 ];

@@ -29,6 +29,7 @@ function profileToValues(profile: NonNullable<PersonDetail['alumnoPerfil']>): St
     periodoIngreso: profile.periodoIngreso,
     beneficio: profile.beneficio,
     tipoBeneficio: profile.tipoBeneficio,
+    condicionMedica: profile.condicionMedica ?? '',
   };
 }
 
@@ -43,6 +44,7 @@ export function PersonStudentProfilePanel({ actorRoles, onFeedback, person }: Pr
       profile.periodoIngreso,
       profile.beneficio,
       profile.tipoBeneficio,
+      profile.condicionMedica ?? '',
     ].join('|')
     : person.id;
   const [draft, setDraft] = useState<{
@@ -122,6 +124,10 @@ export function PersonStudentProfilePanel({ actorRoles, onFeedback, person }: Pr
           <dt>Beneficio</dt>
           <dd>{humanizeStudentValue(profile.beneficio)} · {humanizeStudentValue(profile.tipoBeneficio)}</dd>
         </div>
+        <div>
+          <dt>Condición médica</dt>
+          <dd>{profile.condicionMedica || 'No registrada'}</dd>
+        </div>
       </dl>
 
       <div className="student-profile-edit-grid">
@@ -164,6 +170,21 @@ export function PersonStudentProfilePanel({ actorRoles, onFeedback, person }: Pr
             ))}
           </select>
         </FormField>
+        <div className="form-field-wide">
+          <FormField htmlFor="studentCondicionMedica" label="Condición médica">
+            <textarea
+              className="form-textarea"
+              disabled={!canEdit || updateMutation.isPending}
+              id="studentCondicionMedica"
+              maxLength={1000}
+              onChange={(event) => updateDraft('condicionMedica', event.target.value)}
+              placeholder="Alergias, medicación o consideraciones relevantes (opcional)"
+              rows={4}
+              value={editableProfile?.condicionMedica ?? ''}
+            />
+          </FormField>
+          <small>Información privada visible únicamente para gestores autorizados.</small>
+        </div>
       </div>
       <p>{selectedState?.description}</p>
 

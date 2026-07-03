@@ -23,6 +23,7 @@ import { PersonGuardiansPanel } from './PersonGuardiansPanel';
 import { PersonStudentProfilePanel } from './PersonStudentProfilePanel';
 import { PersonCareerEnrollmentsPanel } from './PersonCareerEnrollmentsPanel';
 import { PersonAcademicRecordsPanel } from './PersonAcademicRecordsPanel';
+import { PersonRegularAcademicHistoryPanel } from './PersonRegularAcademicHistoryPanel';
 import { PersonRolesPanel } from './PersonRolesPanel';
 
 export function PersonDetailPage() {
@@ -355,6 +356,7 @@ export function PersonDetailPage() {
               <div className="detail-grid academic-history-grid">
                 <PersonCareerEnrollmentsPanel actorRoles={actorRoles} personId={person.id} />
                 <PersonAcademicRecordsPanel actorRoles={actorRoles} personId={person.id} />
+                <PersonRegularAcademicHistoryPanel personId={person.id} />
               </div>
             </section>
           </>

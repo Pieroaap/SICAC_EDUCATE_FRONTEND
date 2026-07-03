@@ -239,6 +239,19 @@ export function PersonCreatePage() {
                   ))}
                 </select>
               </FormField>
+              <div className="form-field-wide">
+                <FormField error={fieldError(errors.alumnoPerfil?.condicionMedica)} htmlFor="condicionMedica" label="Condición médica">
+                  <textarea
+                    className="form-textarea"
+                    id="condicionMedica"
+                    maxLength={1000}
+                    placeholder="Alergias, medicación o consideraciones relevantes (opcional)"
+                    rows={4}
+                    {...register('alumnoPerfil.condicionMedica')}
+                  />
+                </FormField>
+                <small>Información privada visible únicamente para gestores autorizados.</small>
+              </div>
             </div>
           </section>
         ) : null}
