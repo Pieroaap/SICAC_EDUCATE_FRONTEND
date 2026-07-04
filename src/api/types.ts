@@ -192,7 +192,7 @@ export type AcademicPeriod = {
   nombre: string;
   fechaInicio: string;
   fechaFin: string;
-  estado: 'activo' | 'culminado';
+  estado: 'programado' | 'activo' | 'culminado';
 };
 
 export type ScheduledCourse = {
@@ -453,7 +453,7 @@ export type AttendanceBook = {
   course: {
     id: string;
     professorId: string;
-    periodState: 'activo' | 'culminado';
+    periodState: 'programado' | 'activo' | 'culminado';
     startDate: string;
     endDate: string;
     periodName: string;

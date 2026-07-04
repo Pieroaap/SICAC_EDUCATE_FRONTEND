@@ -75,7 +75,6 @@ export function AcademicOperationPage() {
         <div>
           <p className="eyebrow">Operación académica</p>
           <h1>Trayectoria por periodo</h1>
-          <p>Programa la oferta, registra matrículas y conserva el historial del alumno.</p>
         </div>
       </header>
       <nav aria-label="Secciones de operación académica" className="academic-tabs">
@@ -156,7 +155,7 @@ function ScheduledCoursesView() {
             <select className="form-select" disabled={!planId} id="scheduled-course" {...form.register('planCursoId')}><option value="">Seleccionar</option>{planCourses.data?.filter((item) => item.planCurricularId === planId && item.estado === 'activo').map((item) => <option key={item.id} value={item.id}>Ciclo {item.ciclo} · {courses.data?.find((course) => course.id === item.cursoId)?.nombre ?? 'Curso'}</option>)}</select>
           </FormField>
           <FormField error={form.formState.errors.periodoAcademicoId?.message} htmlFor="scheduled-period" label="Periodo">
-            <select className="form-select" id="scheduled-period" {...form.register('periodoAcademicoId')}><option value="">Seleccionar</option>{periods.data?.filter((item) => item.carreraId === careerId && item.estado === 'activo').map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select>
+            <select className="form-select" id="scheduled-period" {...form.register('periodoAcademicoId')}><option value="">Seleccionar</option>{periods.data?.filter((item) => item.carreraId === careerId && item.estado !== 'culminado').map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select>
           </FormField>
           <FormField error={form.formState.errors.profesorPersonaId?.message} htmlFor="scheduled-teacher" label="Profesor">
             <select className="form-select" id="scheduled-teacher" {...form.register('profesorPersonaId')}><option value="">Seleccionar</option>{teachers.data?.data.map((item) => <option key={item.id} value={item.id}>{item.apellidoPaterno}, {item.nombres}</option>)}</select>
@@ -229,7 +228,7 @@ function EnrollmentsView() {
   return (
     <section className="operation-section">
       <div className="operation-section__heading">
-        <div><h2>Matrículas por periodo</h2><p>El ciclo de ingreso permanece en el perfil; aquí se ordena la continuidad académica.</p></div>
+        <div><h2>Matrículas por periodo</h2></div>
         <div className="decision-actions">
           {canBulk ? <Button onClick={() => setShowBulk(true)} type="button" variant="secondary">Matrícula masiva</Button> : null}
           <Button onClick={() => setShowForm((value) => !value)} type="button"><Plus size={16} />Nueva matrícula</Button>
@@ -245,7 +244,7 @@ function EnrollmentsView() {
             </div>
           </FormField>
           <FormField error={form.formState.errors.carreraId?.message} htmlFor="enrollment-career" label="Carrera"><select className="form-select" id="enrollment-career" {...form.register('carreraId')}><option value="">Seleccionar</option>{careers.data?.filter((item) => item.estado === 'activo').map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></FormField>
-          <FormField error={form.formState.errors.periodoAcademicoId?.message} htmlFor="enrollment-period" label="Periodo"><select className="form-select" id="enrollment-period" {...form.register('periodoAcademicoId')}><option value="">Seleccionar</option>{periods.data?.filter((item) => item.carreraId === careerId && item.estado === 'activo').map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></FormField>
+          <FormField error={form.formState.errors.periodoAcademicoId?.message} htmlFor="enrollment-period" label="Periodo"><select className="form-select" id="enrollment-period" {...form.register('periodoAcademicoId')}><option value="">Seleccionar</option>{periods.data?.filter((item) => item.carreraId === careerId && item.estado !== 'culminado').map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></FormField>
           <MutationActions error={mutation.error} pending={mutation.isPending} onCancel={() => setShowForm(false)} />
         </form>
       ) : null}
@@ -318,7 +317,7 @@ function BulkEnrollmentPanel({
             setPeriodId(event.target.value); setSelectedIds([]);
           }} value={periodId}>
             <option value="">Seleccionar</option>
-            {periods.filter((item) => item.carreraId === careerId && item.estado === 'activo').map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
+            {periods.filter((item) => item.carreraId === careerId && item.estado !== 'culminado').map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
           </select>
         </FormField>
       </div>

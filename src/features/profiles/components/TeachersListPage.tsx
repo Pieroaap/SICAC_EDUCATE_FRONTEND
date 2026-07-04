@@ -69,7 +69,6 @@ export function TeachersListPage() {
         <div>
           <p className="eyebrow">Identidad</p>
           <h1>Profesores</h1>
-          <p>Directorio docente, vigencia del rol y acceso al sistema.</p>
         </div>
         <Button asChild>
           <Link to="/personas/nueva?rol=PROFESOR">Crear profesor</Link>

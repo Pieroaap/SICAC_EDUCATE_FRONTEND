@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { attendanceBatchSchema, clampAttendanceDate, reactivationReasonSchema } from './academicAttendanceForms';
+import {
+  attendanceBatchSchema, clampAttendanceDate, reactivationReasonSchema, todayIso,
+} from './academicAttendanceForms';
 
 describe('formularios de asistencia', () => {
   it('valida estados y al menos una fila', () => {
@@ -16,5 +18,15 @@ describe('formularios de asistencia', () => {
 
   it('exige motivo suficiente', () => {
     expect(reactivationReasonSchema.safeParse('breve').success).toBe(false);
+  });
+
+  it('usa la fecha local del equipo como valor inicial', () => {
+    const now = new Date();
+    const expected = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, '0'),
+      String(now.getDate()).padStart(2, '0'),
+    ].join('-');
+    expect(todayIso()).toBe(expected);
   });
 });

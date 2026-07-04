@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, CalendarDays, LoaderCircle, TriangleAlert } from 'lucide-react';
 import { useAuth } from '../../auth/AuthProvider';
 import { getDashboard } from '../api/dashboardApi';
+import { Link } from 'react-router-dom';
 
 export function DashboardPage() {
   const { profile } = useAuth();
@@ -39,14 +40,13 @@ export function DashboardPage() {
       <header className="dashboard-heading">
         <div>
           <p className="eyebrow">Panel general</p>
-          <h1>Buenos días, {firstName}</h1>
-          <p>Este es el pulso académico que requiere tu atención.</p>
+          <h1>Bienvenid@, {firstName}</h1>
         </div>
         {data.periodoActivo ? (
           <div className="active-period">
             <CalendarDays size={18} />
             <span>
-              Periodo en escena
+              Periodo activo
               <strong>{data.periodoActivo.nombre}</strong>
             </span>
           </div>
@@ -78,9 +78,7 @@ export function DashboardPage() {
         </section>
       ) : (
         <section className="welcome-panel">
-          <p>Todo empieza aquí.</p>
           <h2>No tienes pendientes que mostrar por ahora.</h2>
-          <span>Usa la navegación para continuar con tus tareas permitidas.</span>
         </section>
       )}
 
@@ -92,10 +90,10 @@ export function DashboardPage() {
           </header>
           <div>
             {data.quickActions.map((action) => (
-              <span className="quick-action" key={action.key}>
+              <Link className="quick-action" key={action.key} to={action.to}>
                 {action.label}
                 <ArrowRight size={17} />
-              </span>
+              </Link>
             ))}
           </div>
         </section>

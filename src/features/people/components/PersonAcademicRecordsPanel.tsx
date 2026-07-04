@@ -67,7 +67,7 @@ export function PersonAcademicRecordsPanel({
       <div className="academic-history-card__heading">
         <div>
           <h3>Antecedentes académicos reconocidos</h3>
-          <p>Cursos aprobados antes de SICAC, sin crear calificaciones ni asistencias ficticias.</p>
+          <p>Cursos aprobados antes de ingresar a SICAC.</p>
         </div>
         {canAuthorize ? (
           <Button onClick={() => setShowForm(true)} type="button" variant="secondary">
@@ -96,7 +96,7 @@ export function PersonAcademicRecordsPanel({
             <div>
               <p className="eyebrow">Trayectoria académica</p>
               <h2>Reconocer antecedente</h2>
-              <p>Registra un curso aprobado antes de SICAC sin crear notas ni asistencias ficticias.</p>
+              <p>Registra un curso aprobado antes de ingresar a SICAC.</p>
             </div>
             <Button aria-label="Cerrar reconocimiento" onClick={() => setShowForm(false)} type="button" variant="ghost">
               <X size={18} />

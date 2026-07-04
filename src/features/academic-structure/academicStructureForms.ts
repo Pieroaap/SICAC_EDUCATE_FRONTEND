@@ -47,7 +47,7 @@ export const academicPeriodSchema = z.object({
   periodo: z.enum(['I', 'II', 'III']),
   fechaInicio: z.string().min(1, 'Campo obligatorio'),
   fechaFin: z.string().min(1, 'Campo obligatorio'),
-  estado: z.enum(['activo', 'culminado']).optional(),
+  estado: z.enum(['programado', 'activo', 'culminado']).optional(),
 }).refine((value) => value.fechaFin >= value.fechaInicio, {
   message: 'La fecha final debe ser posterior o igual a la inicial',
   path: ['fechaFin'],

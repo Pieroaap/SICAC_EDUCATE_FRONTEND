@@ -88,7 +88,7 @@ export function PersonAccessPanel({ actorPersonaId, actorRoles, onFeedback, pers
         </>
       ) : (
         <>
-          <p>Crea una cuenta operativa y asigna el rol inicial. El portal de alumno queda fuera de este corte.</p>
+          <p>Crea una cuenta y asigna el rol inicial.</p>
           <label className="select-filter action-panel__select">
             <span>Rol inicial</span>
             <select

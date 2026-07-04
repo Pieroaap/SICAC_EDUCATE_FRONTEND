@@ -31,7 +31,7 @@ export function WorkshopsPage() {
   return (
     <main className="page-shell workshops-page">
       <header className="page-heading">
-        <div><p className="eyebrow">Operación cultural</p><h1>Talleres</h1><p>Programa experiencias, controla vacantes y acompaña a cada participante.</p></div>
+        <div><p className="eyebrow">Operación cultural</p><h1>Talleres</h1></div>
       </header>
       <nav aria-label="Secciones de talleres" className="workshop-tabs">
         <button
@@ -116,7 +116,7 @@ function ScheduledWorkshops() {
   });
   return (
     <section className="operation-section">
-      <div className="operation-section__heading"><div><h2>Talleres programados</h2><p>Las vacantes se confirman siempre desde el servidor.</p></div><Button onClick={() => setShow((value) => !value)}><CalendarDays size={16} />Programar taller</Button></div>
+      <div className="operation-section__heading"><div><h2>Talleres programados</h2></div><Button onClick={() => setShow((value) => !value)}><CalendarDays size={16} />Programar taller</Button></div>
       <label className="select-filter"><span>Estado</span><select className="form-select" onChange={(event) => setState(event.target.value as ScheduledWorkshopState | '')} value={state}><option value="">Todos</option>{Object.entries(labels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       {show ? <form className="workshop-program-form" onSubmit={form.handleSubmit((value) => create.mutate(value))}>
         <FormField error={form.formState.errors.tallerId?.message} htmlFor="scheduled-workshop" label="Taller"><select className="form-select" id="scheduled-workshop" {...form.register('tallerId')}><option value="">Seleccionar</option>{catalog.data?.data.map((item) => <option key={item.id} value={item.id}>{item.codigo} · {item.nombre}</option>)}</select></FormField>

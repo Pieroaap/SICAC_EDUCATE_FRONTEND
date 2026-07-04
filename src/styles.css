@@ -701,11 +701,15 @@ button:disabled { cursor: default; }
   background: currentColor;
 }
 .profile-state.is-activo { color: #167044; background: rgba(22, 112, 68, 0.09); }
+.profile-state.is-programado { color: #805b12; background: rgba(180, 118, 0, 0.1); }
+.profile-state.is-culminado { color: #62616a; background: rgba(98, 97, 106, 0.1); }
 .profile-state.is-en_pausa { color: #9a6700; background: rgba(180, 118, 0, 0.1); }
 .profile-state.is-retirado,
 .profile-state.is-sin_contestar { color: #8a3d4d; background: rgba(196, 30, 58, 0.08); }
 .profile-state.is-graduado { color: #4f46a5; background: rgba(79, 70, 165, 0.09); }
 .dark .profile-state.is-activo { color: #72d8a0; }
+.dark .profile-state.is-programado { color: #e8bf64; }
+.dark .profile-state.is-culminado { color: #b7b5bf; }
 .dark .profile-state.is-en_pausa { color: #e8bf64; }
 .dark .profile-state.is-retirado,
 .dark .profile-state.is-sin_contestar { color: #ff8ba0; }

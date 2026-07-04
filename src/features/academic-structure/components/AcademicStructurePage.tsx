@@ -63,7 +63,7 @@ const emptyAcademicPeriod: AcademicPeriodValues = {
   periodo: 'I',
   fechaInicio: '',
   fechaFin: '',
-  estado: 'activo',
+  estado: 'programado',
 };
 
 function nameById<T extends { id: string; codigo?: string; nombre?: string }>(rows: T[] | undefined, id: string) {
@@ -91,7 +91,6 @@ export function AcademicStructurePage() {
         <div>
           <p className="eyebrow">Estructura academica</p>
           <h1>{entityOptions.find((option) => option.key === entity)?.label}</h1>
-          <p>Catalogos, mallas por ciclo, prerequisitos y periodos academicos.</p>
         </div>
         {mode === 'list' && entity !== 'plan-cursos' ? (
           <Button asChild><Link to={`/estructura/${entity}/nueva`}>Nuevo registro</Link></Button>
@@ -705,6 +704,7 @@ function AcademicPeriodsEntity({ id, mode }: { id?: string; mode: Mode }) {
         {mode === 'edit' ? (
           <FormField htmlFor="estado-periodo" label="Estado">
             <select className="form-select" id="estado-periodo" {...form.register('estado')}>
+              <option value="programado">Programado</option>
               <option value="activo">Activo</option>
               <option value="culminado">Culminado</option>
             </select>
@@ -757,7 +757,7 @@ function AcademicPeriodsEntity({ id, mode }: { id?: string; mode: Mode }) {
             <td><strong>{period.nombre}</strong></td>
             <td>{period.fechaInicio}</td>
             <td>{period.fechaFin}</td>
-            <td><StatusBadge active={period.estado === 'activo'} /></td>
+            <td><span className={`profile-state is-${period.estado}`}>{period.estado === 'programado' ? 'Programado' : period.estado === 'activo' ? 'Activo' : 'Culminado'}</span></td>
             <td className="table-actions"><EditButton to={`/estructura/periodos-academicos/${period.id}`} /></td>
           </tr>
         ))}
@@ -823,7 +823,6 @@ function EntityForm({
           <span>01</span>
           <div>
             <h2>{mode === 'edit' ? `Editar ${title}` : `Crear ${title}`}</h2>
-            <p>Los cambios quedan sujetos a las reglas y validaciones del backend.</p>
           </div>
         </header>
         <div className="form-grid">{children}</div>
