@@ -64,7 +64,7 @@ export async function updatePerson(personId: string, input: UpdatePersonInput) {
   return data;
 }
 
-export type ProvisionableRole = Exclude<RoleCode, 'ALUMNO'>;
+export type ProvisionableRole = RoleCode;
 
 export async function enablePersonAccess(personId: string, role: ProvisionableRole) {
   const { data } = await api.post(`/personas/${personId}/acceso`, { role });

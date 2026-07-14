@@ -23,7 +23,10 @@ const attendanceApprovers: RoleCode[] = ['DIRECTOR_ACADEMICO', 'GESTOR_ACADEMICO
 const navigation: NavigationGroup[] = [
   {
     label: 'Espacio de trabajo',
-    items: [{ label: 'Panel general', to: '/' }],
+    items: [
+      { label: 'Panel general', to: '/', allowed: [...identityManagers, 'PROFESOR'] },
+      { label: 'Mi portal', to: '/portal', allowed: ['ALUMNO'] },
+    ],
   },
   {
     label: 'Identidad',
@@ -49,6 +52,8 @@ const navigation: NavigationGroup[] = [
       { label: 'Matrículas e historial', to: '/operacion/matriculas', allowed: identityManagers },
       { label: 'Excepciones', to: '/operacion/excepciones', allowed: exceptionManagers },
       { label: 'Talleres', to: '/talleres', allowed: identityManagers },
+      { label: 'Documentos', to: '/documentos', allowed: identityManagers },
+      { label: 'Promoción', to: '/promociones', allowed: identityManagers },
     ],
   },
   {

@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, ClipboardList, Plus, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { Navigate, NavLink, useParams } from 'react-router-dom';
 import { getApiErrorMessage } from '../../../api/client';
 import type { CareerEnrollment, PrerequisiteAuthorization } from '../../../api/types';
@@ -118,8 +118,11 @@ function ScheduledCoursesView() {
     defaultValues: {
       carreraId: '', planCurricularId: '', planCursoId: '',
       periodoAcademicoId: '', profesorPersonaId: '',
+      cupoMaximo: 20,
+      horarios: [{ dia: 'lunes', horaInicio: '18:00', horaFin: '20:00', modalidad: 'presencial', ubicacion: '' }],
     },
   });
+  const scheduleFields = useFieldArray({ control: form.control, name: 'horarios' });
   const careerId = useWatch({ control: form.control, name: 'carreraId' });
   const planId = latestActivePlan(plans.data, careerId)?.id ?? '';
   useEffect(() => {
@@ -131,6 +134,8 @@ function ScheduledCoursesView() {
       planCursoId: values.planCursoId,
       periodoAcademicoId: values.periodoAcademicoId,
       profesorPersonaId: values.profesorPersonaId,
+      cupoMaximo: values.cupoMaximo,
+      horarios: values.horarios,
     }),
     onSuccess: async () => {
       form.reset();
@@ -160,16 +165,30 @@ function ScheduledCoursesView() {
           <FormField error={form.formState.errors.profesorPersonaId?.message} htmlFor="scheduled-teacher" label="Profesor">
             <select className="form-select" id="scheduled-teacher" {...form.register('profesorPersonaId')}><option value="">Seleccionar</option>{teachers.data?.data.map((item) => <option key={item.id} value={item.id}>{item.apellidoPaterno}, {item.nombres}</option>)}</select>
           </FormField>
+          <FormField error={form.formState.errors.cupoMaximo?.message} htmlFor="scheduled-capacity" label="Cupo máximo">
+            <Input id="scheduled-capacity" min={1} type="number" {...form.register('cupoMaximo', { valueAsNumber: true })} />
+          </FormField>
+          <fieldset className="schedule-fieldset"><legend>Horarios</legend>
+            {scheduleFields.fields.map((field, index) => <div className="schedule-row" key={field.id}>
+              <select aria-label={`Día ${index + 1}`} className="form-select" {...form.register(`horarios.${index}.dia`)}><option value="lunes">Lunes</option><option value="martes">Martes</option><option value="miercoles">Miércoles</option><option value="jueves">Jueves</option><option value="viernes">Viernes</option><option value="sabado">Sábado</option><option value="domingo">Domingo</option></select>
+              <Input aria-label={`Inicio ${index + 1}`} type="time" {...form.register(`horarios.${index}.horaInicio`)} />
+              <Input aria-label={`Fin ${index + 1}`} type="time" {...form.register(`horarios.${index}.horaFin`)} />
+              <select aria-label={`Modalidad ${index + 1}`} className="form-select" {...form.register(`horarios.${index}.modalidad`)}><option value="presencial">Presencial</option><option value="virtual">Virtual</option><option value="hibrido">Híbrido</option></select>
+              <Input aria-label={`Ubicación ${index + 1}`} placeholder="Aula o enlace" {...form.register(`horarios.${index}.ubicacion`)} />
+              <Button disabled={scheduleFields.fields.length === 1} onClick={() => scheduleFields.remove(index)} type="button" variant="ghost">Quitar</Button>
+            </div>)}
+            <Button onClick={() => scheduleFields.append({ dia: 'lunes', horaInicio: '18:00', horaFin: '20:00', modalidad: 'presencial', ubicacion: '' })} type="button" variant="secondary">Agregar horario</Button>
+          </fieldset>
           <MutationActions error={mutation.error} pending={mutation.isPending} onCancel={() => setShowForm(false)} />
         </form>
       ) : null}
       <DataTable
-        columns={['Curso', 'Carrera y plan', 'Periodo', 'Docente', 'Estado', 'Alumnos']}
+        columns={['Curso', 'Carrera y plan', 'Periodo', 'Horario y cupo', 'Docente', 'Estado', 'Alumnos']}
         empty="No hay cursos programados."
         error={scheduled.isError}
         loading={scheduled.isPending}
       >
-        {scheduled.data?.map((row) => <tr key={row.id}><td><strong>{row.cursoNombre}</strong><span>Ciclo {row.ciclo}</span></td><td>{row.carreraNombre}<small>{row.planNombre}</small></td><td>{row.periodoNombre}</td><td>{row.profesorApellidoPaterno}, {row.profesorNombres}</td><td><StatusBadge active={row.estado === 'activo'} /></td><td><Button onClick={() => setSelectedCourseId(row.id)} type="button" variant="ghost">Gestionar</Button></td></tr>)}
+        {scheduled.data?.map((row) => <tr key={row.id}><td><strong>{row.cursoNombre}</strong><span>Ciclo {row.ciclo}</span></td><td>{row.carreraNombre}<small>{row.planNombre}</small></td><td>{row.periodoNombre}</td><td>{row.horarios.map((item) => `${item.dia} ${item.horaInicio.slice(0, 5)}–${item.horaFin.slice(0, 5)}`).join(', ') || 'Sin horario'}<small>{row.cupoMaximo ? `${row.cupoMaximo} vacantes` : 'Sin límite'}</small></td><td>{row.profesorApellidoPaterno}, {row.profesorNombres}</td><td><StatusBadge active={row.estado === 'activo'} /></td><td><Button onClick={() => setSelectedCourseId(row.id)} type="button" variant="ghost">Gestionar</Button></td></tr>)}
       </DataTable>
       {selectedCourseId ? <CourseRoster courseId={selectedCourseId} onClose={() => setSelectedCourseId(null)} /> : null}
     </section>

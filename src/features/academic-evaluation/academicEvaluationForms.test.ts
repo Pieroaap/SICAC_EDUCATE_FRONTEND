@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { componentsSchema, gradeToLetter, gradeValueSchema, weightedAverage } from './academicEvaluationForms';
+import { classifyGrade, componentsSchema, gradeToLetter, gradeValueSchema, weightedAverage } from './academicEvaluationForms';
 
 describe('formularios de evaluación', () => {
   it('exige pesos que sumen 100', () => {
@@ -31,8 +31,13 @@ describe('formularios de evaluación', () => {
   it('valida notas y deriva equivalencias', () => {
     expect(gradeValueSchema.safeParse(20).success).toBe(true);
     expect(gradeValueSchema.safeParse(21).success).toBe(false);
-    expect([gradeToLetter(17), gradeToLetter(14), gradeToLetter(11), gradeToLetter(10.99)])
+    expect([gradeToLetter(15), gradeToLetter(13), gradeToLetter(10.5), gradeToLetter(10.4)])
       .toEqual(['A', 'B', 'C', 'D']);
+  });
+
+  it('expone descripción y aprobación con la escala vigente', () => {
+    expect(classifyGrade(12.99)).toEqual({ code: 'C', description: 'En proceso', passed: false });
+    expect(classifyGrade(13)).toEqual({ code: 'B', description: 'Aprobado', passed: true });
   });
 
   it('calcula promedio ponderado con dos decimales', () => {

@@ -8,6 +8,16 @@ export const scheduledCourseSchema = z.object({
   planCursoId: uuid('Selecciona un curso'),
   periodoAcademicoId: uuid('Selecciona un periodo'),
   profesorPersonaId: uuid('Selecciona un profesor'),
+  cupoMaximo: z.coerce.number().int().positive().max(500).optional(),
+  horarios: z.array(z.object({
+    dia: z.enum(['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo']),
+    horaInicio: z.string().regex(/^\d{2}:\d{2}$/, 'Hora inválida'),
+    horaFin: z.string().regex(/^\d{2}:\d{2}$/, 'Hora inválida'),
+    modalidad: z.enum(['presencial', 'virtual', 'hibrido']),
+    ubicacion: z.string().trim().min(1, 'Indica aula o enlace').max(200),
+  }).refine((value) => value.horaFin > value.horaInicio, {
+    message: 'La hora de fin debe ser posterior al inicio', path: ['horaFin'],
+  })).min(1, 'Agrega al menos un horario').default([{ dia: 'lunes', horaInicio: '18:00', horaFin: '20:00', modalidad: 'presencial', ubicacion: '' }]),
 });
 
 export const enrollmentSchema = z.object({

@@ -17,6 +17,8 @@ export const getScheduledCourses = async (filters?: {
 
 export const createScheduledCourse = async (input: {
   planCursoId: string; periodoAcademicoId: string; profesorPersonaId: string;
+  cupoMaximo?: number;
+  horarios: Array<{ dia: string; horaInicio: string; horaFin: string; modalidad: string; ubicacion: string }>;
 }) => (await api.post<ScheduledCourse>('/cursos-programados', input)).data;
 
 export const getEnrollments = async (filters?: {

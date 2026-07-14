@@ -29,7 +29,7 @@ export function EvaluationComponentsForm({
 }: Props) {
   const form = useForm<ComponentsValues>({
     resolver: zodResolver(componentsSchema),
-    defaultValues: { components: [{ nombre: '', porcentaje: 100, orden: 1 }] },
+    defaultValues: { components: [{ nombre: '', porcentaje: 100, orden: 1, tipo: null, fechaProgramada: null, fechaLimite: null, estado: 'programada' }] },
   });
   const fields = useFieldArray({ control: form.control, name: 'components' });
   const watched = useWatch({ control: form.control, name: 'components' });
@@ -43,6 +43,10 @@ export function EvaluationComponentsForm({
           nombre: item.nombre,
           porcentaje: Number(item.porcentaje),
           orden: item.orden,
+          tipo: item.tipo,
+          fechaProgramada: item.fechaProgramada?.slice(0, 16) ?? null,
+          fechaLimite: item.fechaLimite?.slice(0, 16) ?? null,
+          estado: item.estado,
         })),
       });
     }
@@ -67,6 +71,14 @@ export function EvaluationComponentsForm({
               disabled={disabled}
               {...form.register(`components.${index}.nombre`)}
             />
+            <select aria-label={`Tipo de evaluación ${index + 1}`} className="form-select" disabled={disabled} {...form.register(`components.${index}.tipo`, { setValueAs: (value) => value || null })}>
+              <option value="">Otro</option><option value="tarea">Tarea</option><option value="practica">Práctica</option><option value="examen">Examen</option><option value="proyecto">Proyecto</option>
+            </select>
+            <Input aria-label={`Fecha programada ${index + 1}`} disabled={disabled} type="datetime-local" {...form.register(`components.${index}.fechaProgramada`, { setValueAs: (value) => value || null })} />
+            <Input aria-label={`Fecha límite ${index + 1}`} disabled={disabled} type="datetime-local" {...form.register(`components.${index}.fechaLimite`, { setValueAs: (value) => value || null })} />
+            <select aria-label={`Estado de evaluación ${index + 1}`} className="form-select" disabled={disabled} {...form.register(`components.${index}.estado`)}>
+              <option value="programada">Programada</option><option value="en_curso">En curso</option><option value="cerrada">Cerrada</option>
+            </select>
             <Input
               aria-label={`Peso de evaluación ${index + 1}`}
               disabled={disabled}
@@ -110,6 +122,10 @@ export function EvaluationComponentsForm({
               nombre: '',
               porcentaje: 0,
               orden: fields.fields.length + 1,
+              tipo: null,
+              fechaProgramada: null,
+              fechaLimite: null,
+              estado: 'programada',
             })}
             type="button"
             variant="secondary"

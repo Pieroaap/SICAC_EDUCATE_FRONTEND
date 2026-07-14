@@ -31,7 +31,11 @@ export function GradebookPage() {
     enabled: gradebook.data?.acta.estado === 'publicada',
   });
   const components = useMutation({
-    mutationFn: (values: ComponentsValues) => saveEvaluationComponents(courseId, values.components),
+    mutationFn: (values: ComponentsValues) => saveEvaluationComponents(courseId, values.components.map((item) => ({
+      ...item,
+      fechaProgramada: item.fechaProgramada ? new Date(item.fechaProgramada).toISOString() : null,
+      fechaLimite: item.fechaLimite ? new Date(item.fechaLimite).toISOString() : null,
+    }))),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['evaluation', 'gradebook', courseId] });
       componentsDialogRef.current?.close();
@@ -77,6 +81,7 @@ export function GradebookPage() {
           <p>Profesor: {data.course.profesorApellidoPaterno} {data.course.profesorNombres}</p>
         </div>
         <div className="evaluation-heading__actions">
+          <Link className="secondary-link" to={`/muro/${courseId}`}>Muro del curso</Link>
           <Button
             onClick={() => componentsDialogRef.current?.showModal()}
             type="button"

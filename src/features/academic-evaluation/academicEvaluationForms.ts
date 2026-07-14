@@ -10,6 +10,12 @@ export const componentSchema = z.object({
   nombre: z.string().trim().min(1, 'Ingresa el nombre de la evaluación').max(100),
   porcentaje: z.number().gt(0, 'El peso debe ser mayor a cero').max(100),
   orden: z.number().int().positive(),
+  tipo: z.enum(['tarea', 'practica', 'examen', 'proyecto', 'otro']).nullable().default(null),
+  fechaProgramada: z.string().nullable().default(null),
+  fechaLimite: z.string().nullable().default(null),
+  estado: z.enum(['programada', 'en_curso', 'cerrada']).default('programada'),
+}).refine((value) => !value.fechaProgramada || !value.fechaLimite || value.fechaLimite >= value.fechaProgramada, {
+  message: 'La fecha límite debe ser posterior a la programada', path: ['fechaLimite'],
 });
 
 export const componentsSchema = z.object({
@@ -31,11 +37,19 @@ export const gradeValueSchema = z.coerce.number()
 
 export type ComponentsValues = z.infer<typeof componentsSchema>;
 
+export function classifyGrade(grade: number): {
+  code: 'A' | 'B' | 'C' | 'D';
+  description: 'Desaprobado' | 'En proceso' | 'Aprobado' | 'Sobresaliente';
+  passed: boolean;
+} {
+  if (grade >= 15) return { code: 'A', description: 'Sobresaliente', passed: true };
+  if (grade >= 13) return { code: 'B', description: 'Aprobado', passed: true };
+  if (grade >= 10.5) return { code: 'C', description: 'En proceso', passed: false };
+  return { code: 'D', description: 'Desaprobado', passed: false };
+}
+
 export function gradeToLetter(grade: number): 'A' | 'B' | 'C' | 'D' {
-  if (grade >= 17) return 'A';
-  if (grade >= 14) return 'B';
-  if (grade >= 11) return 'C';
-  return 'D';
+  return classifyGrade(grade).code;
 }
 
 export function weightedAverage(

@@ -214,6 +214,15 @@ export type ScheduledCourse = {
   profesorNombres: string;
   profesorApellidoPaterno: string;
   profesorApellidoMaterno: string | null;
+  cupoMaximo: number | null;
+  horarios: Array<{
+    id: string;
+    dia: 'lunes' | 'martes' | 'miercoles' | 'jueves' | 'viernes' | 'sabado' | 'domingo';
+    horaInicio: string;
+    horaFin: string;
+    modalidad: 'presencial' | 'virtual' | 'hibrido';
+    ubicacion: string | null;
+  }>;
 };
 
 export type CareerEnrollment = {
@@ -349,6 +358,10 @@ export type EvaluationComponent = {
   nombre: string;
   porcentaje: string;
   orden: number;
+  tipo: 'tarea' | 'practica' | 'examen' | 'proyecto' | 'otro' | null;
+  fechaProgramada: string | null;
+  fechaLimite: string | null;
+  estado: 'programada' | 'en_curso' | 'cerrada';
 };
 
 export type GradebookGrade = {
@@ -405,6 +418,7 @@ export type AcademicAct = {
     notaFinal: string;
     letra: LetterGrade;
     resultado: 'aprobado' | 'desaprobado';
+    escalaCodigo: 'legacy_11' | 'stakeholder_13';
   }>;
 };
 
@@ -419,6 +433,7 @@ export type RegularAcademicHistoryItem = {
   notaFinal: string;
   letra: LetterGrade;
   resultado: 'aprobado' | 'desaprobado';
+  escalaCodigo: 'legacy_11' | 'stakeholder_13';
   publicadaAt: string;
 };
 
