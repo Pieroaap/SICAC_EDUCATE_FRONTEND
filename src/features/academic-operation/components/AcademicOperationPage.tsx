@@ -123,6 +123,28 @@ function ScheduledCoursesView() {
     queryKey: ['operation', 'scheduled-courses', periodFilter],
     queryFn: () => getScheduledCourses({ periodoId: periodFilter || undefined }),
   });
+  const catalogLoading = careers.isPending
+    || plans.isPending
+    || planCourses.isPending
+    || courses.isPending
+    || periods.isPending
+    || teachers.isPending;
+  const catalogError = careers.isError
+    || plans.isError
+    || planCourses.isError
+    || courses.isError
+    || periods.isError
+    || teachers.isError;
+  const retryCatalogs = () => {
+    void Promise.all([
+      careers.refetch(),
+      plans.refetch(),
+      planCourses.refetch(),
+      courses.refetch(),
+      periods.refetch(),
+      teachers.refetch(),
+    ]);
+  };
   const form = useForm<ScheduledCourseInput, unknown, ScheduledCourseValues>({
     resolver: zodResolver(scheduledCourseSchema),
     defaultValues: {
@@ -133,6 +155,8 @@ function ScheduledCoursesView() {
   });
 
   const closeForm = () => {
+    createMutation.reset();
+    updateMutation.reset();
     setFormMode(null);
     setEditingCourse(null);
     form.reset();
@@ -158,6 +182,8 @@ function ScheduledCoursesView() {
   });
 
   const startCreate = () => {
+    createMutation.reset();
+    updateMutation.reset();
     setEditingCourse(null);
     setFormMode('create');
     form.reset({
@@ -168,6 +194,8 @@ function ScheduledCoursesView() {
   };
 
   const startEdit = (course: ScheduledCourse) => {
+    createMutation.reset();
+    updateMutation.reset();
     setEditingCourse(course);
     setFormMode('edit');
     form.reset(scheduledCourseToFormValues(course));
@@ -183,6 +211,11 @@ function ScheduledCoursesView() {
       {formMode ? (
         <ScheduledCourseForm
           careers={careers.data ?? []}
+          catalogState={{
+            error: catalogError,
+            loading: catalogLoading,
+            onRetry: retryCatalogs,
+          }}
           course={editingCourse}
           courses={courses.data ?? []}
           error={formMode === 'edit' ? updateMutation.error : createMutation.error}

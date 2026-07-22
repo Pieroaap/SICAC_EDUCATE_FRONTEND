@@ -1303,6 +1303,24 @@ button:disabled { cursor: default; }
 }
 .scheduled-course-form__context strong { color: var(--ink); font-size: 1rem; }
 .scheduled-course-form__context small { color: var(--ink-muted); font-size: .78rem; }
+.scheduled-course-form__catalog-state {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .75rem .9rem;
+  border-radius: 8px;
+  font-size: .8rem;
+}
+.scheduled-course-form__catalog-state:not(.error-banner) {
+  border: 1px solid var(--line);
+  color: var(--ink-secondary);
+  background: var(--canvas);
+}
+.scheduled-course-form__catalog-state ul { margin: 0; padding-left: 1.1rem; }
+.schedule-control { min-width: 0; display: grid; align-content: start; gap: .25rem; }
+.field-error { color: var(--color-brand); font-size: .72rem; line-height: 1.35; }
 .operation-form__actions {
   grid-column: 1 / -1;
   display: flex;
@@ -1804,6 +1822,10 @@ button:disabled { cursor: default; }
   .operation-form__actions .error-banner {
     width: 100%;
     margin-right: 0;
+  }
+  .scheduled-course-form__catalog-state {
+    align-items: stretch;
+    flex-direction: column;
   }
   .auth-mobile-brand { min-height: 118px; margin-bottom: 2rem; }
   .auth-mobile-brand img { width: 158px; }
