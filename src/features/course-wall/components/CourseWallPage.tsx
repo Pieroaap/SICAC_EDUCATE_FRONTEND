@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Paperclip } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Button } from '../../../components/ui/Button';
@@ -60,7 +60,27 @@ export function CourseWallPage() {
           <div><h2>Nueva publicación</h2><p>Comparte anuncios, materiales o enlaces con los alumnos del curso.</p></div>
           <Input onChange={(event) => setTitulo(event.target.value)} placeholder="Título" required value={titulo} />
           <textarea className="form-textarea" onChange={(event) => setContenido(event.target.value)} placeholder="Escribe una comunicación" required value={contenido} />
-          <label>Adjuntos (máximo 5)<input multiple onChange={(event) => setFiles(Array.from(event.target.files ?? []).slice(0, 5))} type="file" /></label>
+          <label className="wall-file-picker">
+            <span className="wall-file-picker__label">Adjuntos <small>Máximo 5 archivos</small></span>
+            <input
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png"
+              className="wall-file-picker__input"
+              multiple
+              onChange={(event) => {
+                setFiles(Array.from(event.target.files ?? []).slice(0, 5));
+                event.currentTarget.value = '';
+              }}
+              type="file"
+            />
+            <span className="wall-file-picker__control">
+              <span className="wall-file-picker__button"><Paperclip aria-hidden="true" size={17} /> Elegir archivos</span>
+              <span className="wall-file-picker__status">
+                {files.length
+                  ? `${files.length} archivo${files.length === 1 ? '' : 's'} seleccionado${files.length === 1 ? '' : 's'}`
+                  : 'Ningún archivo seleccionado'}
+              </span>
+            </span>
+          </label>
           <Button disabled={create.isPending} type="submit">Publicar</Button>
         </form>
       ) : null}
