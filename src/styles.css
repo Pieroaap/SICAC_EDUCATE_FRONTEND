@@ -1292,6 +1292,17 @@ button:disabled { cursor: default; }
   border-radius: 12px;
   background: var(--surface);
 }
+.scheduled-course-form__context {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: .25rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--canvas);
+}
+.scheduled-course-form__context strong { color: var(--ink); font-size: 1rem; }
+.scheduled-course-form__context small { color: var(--ink-muted); font-size: .78rem; }
 .operation-form__actions {
   grid-column: 1 / -1;
   display: flex;
