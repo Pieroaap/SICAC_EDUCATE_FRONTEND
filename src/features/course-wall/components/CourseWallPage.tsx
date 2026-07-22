@@ -7,6 +7,17 @@ import { Input } from '../../../components/ui/Input';
 import { useAuth } from '../../auth/AuthProvider';
 import { downloadDocument } from '../../documents/api/documentsApi';
 import { createCoursePost, getCourseWall, removeCoursePost, updateCoursePost, uploadCourseAttachment } from '../api/courseWallApi';
+import { parseWallText } from '../courseWallText';
+
+function LinkedWallText({ text }: { text: string }) {
+  return (
+    <p className="wall-content">
+      {parseWallText(text).map((segment, index) => segment.href
+        ? <a href={segment.href} key={`${segment.value}-${index}`} rel="noopener noreferrer" target="_blank">{segment.value}</a>
+        : <span key={`${segment.value}-${index}`}>{segment.value}</span>)}
+    </p>
+  );
+}
 
 export function CourseWallPage() {
   const { courseId = '' } = useParams();
@@ -46,6 +57,7 @@ export function CourseWallPage() {
       </header>
       {canWrite ? (
         <form className="detail-panel" onSubmit={(event) => { event.preventDefault(); create.mutate(); }}>
+          <div><h2>Nueva publicación</h2><p>Comparte anuncios, materiales o enlaces con los alumnos del curso.</p></div>
           <Input onChange={(event) => setTitulo(event.target.value)} placeholder="Título" required value={titulo} />
           <textarea className="form-textarea" onChange={(event) => setContenido(event.target.value)} placeholder="Escribe una comunicación" required value={contenido} />
           <label>Adjuntos (máximo 5)<input multiple onChange={(event) => setFiles(Array.from(event.target.files ?? []).slice(0, 5))} type="file" /></label>
@@ -57,7 +69,7 @@ export function CourseWallPage() {
           <article className="portal-card" key={post.id}>
             <span className="eyebrow">{post.fijada ? 'Fijada' : new Date(post.publicadaAt).toLocaleDateString()}</span>
             <h2>{post.titulo}</h2>
-            <p className="wall-content">{post.contenido}</p>
+            <LinkedWallText text={post.contenido} />
             {post.archivos.map((file) => <button className="text-link" key={file.id} onClick={() => void downloadDocument(file.id)} type="button">{file.nombreOriginal}</button>)}
             {canWrite ? <div className="button-row"><Button onClick={() => pin.mutate({ id: post.id, fijada: !post.fijada })} type="button" variant="secondary">{post.fijada ? 'Desfijar' : 'Fijar'}</Button><Button onClick={() => remove.mutate(post.id)} type="button" variant="ghost">Retirar</Button></div> : null}
           </article>

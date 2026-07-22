@@ -1,9 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, ClipboardList, Plus, X } from 'lucide-react';
+import { Check, ClipboardList, Megaphone, Plus, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
-import { Navigate, NavLink, useParams } from 'react-router-dom';
+import { Link, Navigate, NavLink, useParams } from 'react-router-dom';
 import { getApiErrorMessage } from '../../../api/client';
 import type { CareerEnrollment, PrerequisiteAuthorization } from '../../../api/types';
 import { Button } from '../../../components/ui/Button';
@@ -184,12 +184,12 @@ function ScheduledCoursesView() {
         </form>
       ) : null}
       <DataTable
-        columns={['Curso', 'Carrera y plan', 'Periodo', 'Horario y cupo', 'Docente', 'Estado', 'Alumnos']}
+        columns={['Curso', 'Carrera y plan', 'Periodo', 'Horario y cupo', 'Docente', 'Estado', 'Acciones']}
         empty="No hay cursos programados."
         error={scheduled.isError}
         loading={scheduled.isPending}
       >
-        {scheduled.data?.map((row) => <tr key={row.id}><td><strong>{row.cursoNombre}</strong><span>Ciclo {row.ciclo}</span></td><td>{row.carreraNombre}<small>{row.planNombre}</small></td><td>{row.periodoNombre}</td><td>{row.horarios.map((item) => `${item.dia} ${item.horaInicio.slice(0, 5)}–${item.horaFin.slice(0, 5)}`).join(', ') || 'Sin horario'}<small>{row.cupoMaximo ? `${row.cupoMaximo} vacantes` : 'Sin límite'}</small></td><td>{row.profesorApellidoPaterno}, {row.profesorNombres}</td><td><StatusBadge active={row.estado === 'activo'} /></td><td><Button onClick={() => setSelectedCourseId(row.id)} type="button" variant="ghost">Gestionar</Button></td></tr>)}
+        {scheduled.data?.map((row) => <tr key={row.id}><td><strong>{row.cursoNombre}</strong><span>Ciclo {row.ciclo}</span></td><td>{row.carreraNombre}<small>{row.planNombre}</small></td><td>{row.periodoNombre}</td><td>{row.horarios.map((item) => `${item.dia} ${item.horaInicio.slice(0, 5)}–${item.horaFin.slice(0, 5)}`).join(', ') || 'Sin horario'}<small>{row.cupoMaximo ? `${row.cupoMaximo} vacantes` : 'Sin límite'}</small></td><td>{row.profesorApellidoPaterno}, {row.profesorNombres}</td><td><StatusBadge active={row.estado === 'activo'} /></td><td><div className="button-row"><Button asChild variant="secondary"><Link to={`/muro/${row.id}`}><Megaphone size={15} /> Muro</Link></Button><Button onClick={() => setSelectedCourseId(row.id)} type="button" variant="ghost">Alumnos</Button></div></td></tr>)}
       </DataTable>
       {selectedCourseId ? <CourseRoster courseId={selectedCourseId} onClose={() => setSelectedCourseId(null)} /> : null}
     </section>
