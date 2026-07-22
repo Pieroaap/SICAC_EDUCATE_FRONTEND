@@ -1,3 +1,4 @@
+@import "./features/student-portal/student-portal.css";
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));

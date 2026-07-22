@@ -46,7 +46,8 @@ export const academicRecordSchema = z.object({
   path: ['periodoReferencial'],
 });
 
-export type ScheduledCourseValues = z.infer<typeof scheduledCourseSchema>;
+export type ScheduledCourseInput = z.input<typeof scheduledCourseSchema>;
+export type ScheduledCourseValues = z.output<typeof scheduledCourseSchema>;
 export type EnrollmentValues = z.infer<typeof enrollmentSchema>;
 export type CareerRegistrationValues = z.infer<typeof careerRegistrationSchema>;
 export type AcademicRecordValues = z.infer<typeof academicRecordSchema>;

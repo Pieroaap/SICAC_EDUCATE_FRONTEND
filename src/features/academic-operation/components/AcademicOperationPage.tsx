@@ -24,6 +24,7 @@ import {
   authorizationSchema,
   enrollmentSchema,
   scheduledCourseSchema,
+  type ScheduledCourseInput,
   type EnrollmentValues,
   type ScheduledCourseValues,
 } from '../academicOperationForms';
@@ -113,7 +114,7 @@ function ScheduledCoursesView() {
     queryKey: ['operation', 'scheduled-courses', periodFilter],
     queryFn: () => getScheduledCourses({ periodoId: periodFilter || undefined }),
   });
-  const form = useForm<ScheduledCourseValues>({
+  const form = useForm<ScheduledCourseInput, unknown, ScheduledCourseValues>({
     resolver: zodResolver(scheduledCourseSchema),
     defaultValues: {
       carreraId: '', planCurricularId: '', planCursoId: '',

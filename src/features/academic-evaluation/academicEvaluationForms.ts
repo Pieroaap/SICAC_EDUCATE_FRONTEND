@@ -35,7 +35,8 @@ export const gradeValueSchema = z.coerce.number()
   .min(0, 'La nota mínima es 0')
   .max(20, 'La nota máxima es 20');
 
-export type ComponentsValues = z.infer<typeof componentsSchema>;
+export type ComponentsInput = z.input<typeof componentsSchema>;
+export type ComponentsValues = z.output<typeof componentsSchema>;
 
 export function classifyGrade(grade: number): {
   code: 'A' | 'B' | 'C' | 'D';

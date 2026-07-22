@@ -7,6 +7,7 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import {
   componentsSchema,
+  type ComponentsInput,
   type ComponentsValues,
 } from '../academicEvaluationForms';
 
@@ -27,7 +28,7 @@ export function EvaluationComponentsForm({
   onCancel,
   onSave,
 }: Props) {
-  const form = useForm<ComponentsValues>({
+  const form = useForm<ComponentsInput, unknown, ComponentsValues>({
     resolver: zodResolver(componentsSchema),
     defaultValues: { components: [{ nombre: '', porcentaje: 100, orden: 1, tipo: null, fechaProgramada: null, fechaLimite: null, estado: 'programada' }] },
   });

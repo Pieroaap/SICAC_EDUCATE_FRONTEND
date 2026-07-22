@@ -26,6 +26,7 @@ const navigation: NavigationGroup[] = [
     items: [
       { label: 'Panel general', to: '/', allowed: [...identityManagers, 'PROFESOR'] },
       { label: 'Mi portal', to: '/portal', allowed: ['ALUMNO'] },
+      { label: 'Mi historial', to: '/portal/historial', allowed: ['ALUMNO'] },
     ],
   },
   {

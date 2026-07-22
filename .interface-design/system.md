@@ -23,6 +23,14 @@ SICAC usa una interfaz administrativa sobria inspirada en un programa teatral: j
 - Botón primario único por contexto. Acciones secundarias y destructivas deben distinguirse.
 - Diseño responsivo sin ocultar datos o acciones esenciales.
 
+## Portal del alumno
+
+- El inicio usa el patrón `Agenda académica`: una sola llamada a escena como foco, seguida de filas de curso y talleres.
+- La llamada a escena usa fondo negro, radio de 16 px, rojo institucional como señal y contenido próximo real; nunca inventa fechas.
+- Los cursos se presentan como filas de 92 px con código, nombre, periodo, horario y acceso contextual; no como cuadrícula de tarjetas idénticas.
+- Los estados vacíos usan icono, título y explicación breve dentro de una superficie de 92 px como mínimo.
+- Historial es una vista secundaria. Asistencia, documentos, evaluaciones y muro pertenecen al espacio del curso programado.
+
 ## Accesibilidad y seguridad visual
 
 - Mantener foco visible, contraste suficiente y objetivos táctiles de al menos 40 px.
