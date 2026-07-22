@@ -10,6 +10,7 @@ import type {
   CareerRegistration,
   PaginatedResponse,
 } from '../../../api/types';
+import type { ScheduledCourseUpdatePayload } from '../scheduledCourseEditing';
 
 export const getScheduledCourses = async (filters?: {
   carreraId?: string; periodoId?: string; profesorId?: string;
@@ -17,9 +18,15 @@ export const getScheduledCourses = async (filters?: {
 
 export const createScheduledCourse = async (input: {
   planCursoId: string; periodoAcademicoId: string; profesorPersonaId: string;
+  seccion: string;
   cupoMaximo?: number;
   horarios: Array<{ dia: string; horaInicio: string; horaFin: string; modalidad: string; ubicacion: string }>;
 }) => (await api.post<ScheduledCourse>('/cursos-programados', input)).data;
+
+export const updateScheduledCourse = async (
+  id: string,
+  input: ScheduledCourseUpdatePayload,
+) => (await api.patch<ScheduledCourse>(`/cursos-programados/${id}`, input)).data;
 
 export const getEnrollments = async (filters?: {
   personaId?: string; carreraId?: string; periodoId?: string;

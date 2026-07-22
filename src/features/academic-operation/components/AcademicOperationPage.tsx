@@ -135,7 +135,8 @@ function ScheduledCoursesView() {
       planCursoId: values.planCursoId,
       periodoAcademicoId: values.periodoAcademicoId,
       profesorPersonaId: values.profesorPersonaId,
-      cupoMaximo: values.cupoMaximo,
+      seccion: values.seccion,
+      cupoMaximo: values.cupoMaximo ?? undefined,
       horarios: values.horarios,
     }),
     onSuccess: async () => {
