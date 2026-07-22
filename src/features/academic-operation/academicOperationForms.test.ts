@@ -30,7 +30,14 @@ describe('campos operativos de cursos programados', () => {
       horarios: [{ dia: 'lunes', horaInicio: '18:00', horaFin: '20:00', modalidad: 'presencial', ubicacion: 'Sala 1' }],
     };
     expect(scheduledCourseSchema.safeParse({ ...base, seccion: '' }).success).toBe(false);
-    expect(scheduledCourseSchema.safeParse({ ...base, cupoMaximo: 0 }).success).toBe(false);
+    const nonPositiveCapacity = scheduledCourseSchema.safeParse({ ...base, cupoMaximo: 0 });
+    const excessiveCapacity = scheduledCourseSchema.safeParse({ ...base, cupoMaximo: 501 });
+    expect(nonPositiveCapacity.success).toBe(false);
+    expect(excessiveCapacity.success).toBe(false);
+    if (!nonPositiveCapacity.success && !excessiveCapacity.success) {
+      expect(nonPositiveCapacity.error.issues[0]?.message).toBe('El cupo máximo debe ser mayor que 0');
+      expect(excessiveCapacity.error.issues[0]?.message).toBe('El cupo máximo no puede superar 500');
+    }
   });
 
   it('rechaza horarios invertidos o sin ubicación', () => {

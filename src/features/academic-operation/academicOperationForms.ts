@@ -25,7 +25,12 @@ export const scheduledCourseOperationalSchema = z.object({
   profesorPersonaId: uuid('Selecciona un profesor'),
   seccion: z.string().trim().min(1, 'Indica una sección').max(30).default('ÚNICA'),
   estado: z.enum(['activo', 'inactivo']).default('activo'),
-  cupoMaximo: z.number().int().positive().max(500).nullable().default(20),
+  cupoMaximo: z.number()
+    .int()
+    .positive('El cupo máximo debe ser mayor que 0')
+    .max(500, 'El cupo máximo no puede superar 500')
+    .nullable()
+    .default(20),
   horarios: z.array(scheduleBlockSchema).min(1, 'Agrega al menos un horario')
     .default([{ ...emptyScheduleBlock }]),
 });

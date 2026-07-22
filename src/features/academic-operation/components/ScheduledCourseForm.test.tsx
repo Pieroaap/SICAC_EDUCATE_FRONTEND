@@ -77,6 +77,7 @@ type HarnessProps = {
   catalogState?: { loading: boolean; error: boolean; onRetry: () => void };
   emptyCatalogs?: boolean;
   error?: unknown;
+  onSubmit?: (values: ScheduledCourseValues) => void;
 };
 
 function Harness({
@@ -86,6 +87,7 @@ function Harness({
   catalogState = { loading: false, error: false, onRetry: vi.fn() },
   emptyCatalogs = false,
   error = null,
+  onSubmit = vi.fn(),
 }: HarnessProps) {
   const form = useForm<ScheduledCourseInput, unknown, ScheduledCourseValues>({
     resolver: zodResolver(scheduledCourseSchema),
@@ -104,7 +106,7 @@ function Harness({
       form={form}
       mode={mode}
       onCancel={vi.fn()}
-      onSubmit={vi.fn()}
+      onSubmit={onSubmit}
       pending={false}
     />
   );
@@ -193,5 +195,25 @@ describe('ScheduledCourseForm', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(
       'No se pudo guardar el curso programado.',
     );
+  });
+
+  it('conserva cupo null al enviar una edición válida', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(
+      <Harness
+        course={{ ...historicalCourse, cupoMaximo: null }}
+        mode="edit"
+        onSubmit={onSubmit}
+        values={{ ...defaultValues, cupoMaximo: null }}
+      />,
+    );
+
+    expect(screen.getByLabelText('Cupo máximo')).toHaveValue(null);
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+    expect(onSubmit).toHaveBeenCalledOnce();
+    expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ cupoMaximo: null });
+    expect(screen.queryByText(/cupo máximo debe/i)).not.toBeInTheDocument();
   });
 });

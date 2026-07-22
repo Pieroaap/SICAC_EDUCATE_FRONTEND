@@ -194,7 +194,7 @@ export function ScheduledCourseForm({
           min={1}
           type="number"
           {...form.register('cupoMaximo', {
-            setValueAs: (value) => value === '' ? null : Number(value),
+            setValueAs: (value) => value == null || value === '' ? null : Number(value),
           })}
         />
       </FormField>
