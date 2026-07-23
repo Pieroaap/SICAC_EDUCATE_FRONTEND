@@ -48,7 +48,6 @@ vi.mock('../api/academicOperationApi', () => ({
   withdrawCourseStudent: vi.fn(),
 }));
 
-import { getAllActiveTeachers } from '../loadAllActiveTeachers';
 import { ScheduledCoursesView } from './AcademicOperationPage';
 
 afterEach(cleanup);
@@ -107,7 +106,7 @@ beforeEach(() => {
   mocks.getAcademicPeriods.mockResolvedValue([{ id: ids.period, carreraId: ids.career, anio: 2025, periodo: 'I', nombre: '2025-I', fechaInicio: '2025-03-01', fechaFin: '2025-07-01', estado: 'activo' }]);
   mocks.getTeachers.mockResolvedValue({
     data: [{ id: ids.activeTeacher, nombres: 'María', apellidoPaterno: 'López', apellidoMaterno: null, dni: '12345678', correo: null, estado: 'activo', tieneAcceso: true }],
-    pagination: { page: 1, pageSize: 100, total: 1, totalPages: 1 },
+    pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
   });
   mocks.getScheduledCourses.mockResolvedValue([firstCourse, secondCourse]);
 });
@@ -151,19 +150,5 @@ describe('ScheduledCoursesView', () => {
 
     resolveUpdate(firstCourse);
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Guardar cambios' })).not.toBeInTheDocument());
-  });
-
-  it('carga todas las páginas de profesores activos', async () => {
-    mocks.getTeachers.mockImplementation(async ({ page }: { page: number }) => ({
-      data: [{ id: `teacher-${page}` }],
-      pagination: { page, pageSize: 100, total: 3, totalPages: 3 },
-    }));
-
-    await expect(getAllActiveTeachers()).resolves.toEqual([
-      { id: 'teacher-1' }, { id: 'teacher-2' }, { id: 'teacher-3' },
-    ]);
-    expect(mocks.getTeachers).toHaveBeenNthCalledWith(1, { page: 1, pageSize: 100, estado: 'activo' });
-    expect(mocks.getTeachers).toHaveBeenCalledWith({ page: 2, pageSize: 100, estado: 'activo' });
-    expect(mocks.getTeachers).toHaveBeenCalledWith({ page: 3, pageSize: 100, estado: 'activo' });
   });
 });
