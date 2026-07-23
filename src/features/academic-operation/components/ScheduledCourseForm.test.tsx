@@ -78,6 +78,7 @@ type HarnessProps = {
   emptyCatalogs?: boolean;
   error?: unknown;
   onSubmit?: (values: ScheduledCourseValues) => void;
+  pending?: boolean;
 };
 
 function Harness({
@@ -88,6 +89,7 @@ function Harness({
   emptyCatalogs = false,
   error = null,
   onSubmit = vi.fn(),
+  pending = false,
 }: HarnessProps) {
   const form = useForm<ScheduledCourseInput, unknown, ScheduledCourseValues>({
     resolver: zodResolver(scheduledCourseSchema),
@@ -107,7 +109,7 @@ function Harness({
       mode={mode}
       onCancel={vi.fn()}
       onSubmit={onSubmit}
-      pending={false}
+      pending={pending}
     />
   );
 }
@@ -215,5 +217,26 @@ describe('ScheduledCourseForm', () => {
     expect(onSubmit).toHaveBeenCalledOnce();
     expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ cupoMaximo: null });
     expect(screen.queryByText(/cupo máximo debe/i)).not.toBeInTheDocument();
+  });
+
+  it('asocia los errores superiores con sus controles', async () => {
+    const user = userEvent.setup();
+    render(<Harness values={{ ...defaultValues, seccion: '' }} />);
+
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    const section = screen.getByLabelText('Sección');
+    expect(section).toHaveAttribute('aria-invalid', 'true');
+    expect(section).toHaveAttribute('aria-errormessage', 'scheduled-section-error');
+    expect(section).toHaveAccessibleDescription('Indica una sección');
+  });
+
+  it('bloquea todos los cambios del borrador mientras guarda', () => {
+    render(<Harness pending />);
+
+    expect(screen.getByLabelText('Profesor')).toBeDisabled();
+    expect(screen.getByLabelText('Sección')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Agregar horario' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDisabled();
   });
 });

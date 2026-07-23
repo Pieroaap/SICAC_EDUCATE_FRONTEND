@@ -3,8 +3,8 @@ import { emptyScheduleBlock, type ScheduledCourseValues } from './academicOperat
 
 export type ScheduledCourseUpdatePayload = Pick<
   ScheduledCourseValues,
-  'profesorPersonaId' | 'seccion' | 'estado' | 'cupoMaximo' | 'horarios'
->;
+  'seccion' | 'estado' | 'cupoMaximo' | 'horarios'
+> & Partial<Pick<ScheduledCourseValues, 'profesorPersonaId'>>;
 
 export function scheduledCourseToFormValues(course: ScheduledCourse): ScheduledCourseValues {
   return {
@@ -39,12 +39,15 @@ export function toCreateScheduledCoursePayload(values: ScheduledCourseValues) {
 
 export function toUpdateScheduledCoursePayload(
   values: ScheduledCourseValues,
+  originalProfessorId: string,
 ): ScheduledCourseUpdatePayload {
   return {
-    profesorPersonaId: values.profesorPersonaId,
     seccion: values.seccion,
     estado: values.estado,
     cupoMaximo: values.cupoMaximo,
     horarios: values.horarios,
+    ...(values.profesorPersonaId !== originalProfessorId
+      ? { profesorPersonaId: values.profesorPersonaId }
+      : {}),
   };
 }

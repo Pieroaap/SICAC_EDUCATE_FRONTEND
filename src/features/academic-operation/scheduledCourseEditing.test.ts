@@ -35,11 +35,10 @@ describe('edición de cursos programados', () => {
     });
   });
 
-  it('excluye la identidad académica del payload de actualización', () => {
+  it('omite el profesor histórico cuando no cambia al editar otro campo', () => {
     const values = scheduledCourseToFormValues(course);
-    expect(toUpdateScheduledCoursePayload(values)).toEqual({
-      profesorPersonaId: course.profesorPersonaId,
-      seccion: 'A', estado: 'activo', cupoMaximo: null,
+    expect(toUpdateScheduledCoursePayload({ ...values, seccion: 'B' }, course.profesorPersonaId)).toEqual({
+      seccion: 'B', estado: 'activo', cupoMaximo: null,
       horarios: [{ dia: 'martes', horaInicio: '18:00', horaFin: '20:00', modalidad: 'presencial', ubicacion: 'Sala 2' }],
     });
     expect(toCreateScheduledCoursePayload(values)).toMatchObject({
@@ -47,5 +46,15 @@ describe('edición de cursos programados', () => {
       periodoAcademicoId: course.periodoAcademicoId,
       seccion: 'A',
     });
+  });
+
+  it('incluye profesorPersonaId solamente cuando el docente cambia', () => {
+    const values = scheduledCourseToFormValues(course);
+    const newProfessorId = '00000000-0000-4000-8000-000000000099';
+
+    expect(toUpdateScheduledCoursePayload(
+      { ...values, profesorPersonaId: newProfessorId },
+      course.profesorPersonaId,
+    )).toMatchObject({ profesorPersonaId: newProfessorId });
   });
 });

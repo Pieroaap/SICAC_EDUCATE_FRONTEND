@@ -121,8 +121,13 @@ export function ScheduledCourseForm({
     form.setValue('planCursoId', '');
   }, [activePlanId, careerId, form, mode]);
 
+  useEffect(() => {
+    if (catalogState.loading || catalogState.error) return;
+    document.getElementById(mode === 'edit' ? 'scheduled-teacher' : 'scheduled-career')?.focus();
+  }, [catalogState.error, catalogState.loading, course?.id, mode]);
+
   return (
-    <form className="operation-form scheduled-course-form" onSubmit={form.handleSubmit(onSubmit)}>
+    <form className="operation-form scheduled-course-form" id="scheduled-course-form" onSubmit={form.handleSubmit(onSubmit)}>
       {mode === 'edit' && course ? (
         <div className="scheduled-course-form__context">
           <span className="eyebrow">Edición operativa</span>
@@ -148,14 +153,14 @@ export function ScheduledCourseForm({
         </div>
       ) : null}
       <FormField error={form.formState.errors.carreraId?.message} htmlFor="scheduled-career" label="Carrera">
-        <select className="form-select" disabled={mode === 'edit' || catalogState.loading || catalogState.error} id="scheduled-career" {...form.register('carreraId')}>
+        <select aria-describedby={form.formState.errors.carreraId ? 'scheduled-career-error' : undefined} aria-errormessage={form.formState.errors.carreraId ? 'scheduled-career-error' : undefined} aria-invalid={Boolean(form.formState.errors.carreraId)} className="form-select" disabled={pending || mode === 'edit' || catalogState.loading || catalogState.error} id="scheduled-career" {...form.register('carreraId')}>
           <option value="">Seleccionar</option>
           {mode === 'edit' && course ? <option value={course.carreraId}>{course.carreraNombre}</option> : null}
           {activeCareers.filter((item) => mode !== 'edit' || item.id !== course?.carreraId).map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
         </select>
       </FormField>
       <FormField error={form.formState.errors.planCursoId?.message} htmlFor="scheduled-course" label="Curso">
-        <select className="form-select" disabled={mode === 'edit' || !planId || catalogState.loading || catalogState.error} id="scheduled-course" {...form.register('planCursoId')}>
+        <select aria-describedby={form.formState.errors.planCursoId ? 'scheduled-course-error' : undefined} aria-errormessage={form.formState.errors.planCursoId ? 'scheduled-course-error' : undefined} aria-invalid={Boolean(form.formState.errors.planCursoId)} className="form-select" disabled={pending || mode === 'edit' || !planId || catalogState.loading || catalogState.error} id="scheduled-course" {...form.register('planCursoId')}>
           <option value="">Seleccionar</option>
           {mode === 'edit' && course ? <option value={course.planCursoId}>Ciclo {course.ciclo} · {course.cursoNombre}</option> : null}
           {availablePlanCourses.filter((item) => mode !== 'edit' || item.id !== course?.planCursoId).map((item) => (
@@ -164,25 +169,25 @@ export function ScheduledCourseForm({
         </select>
       </FormField>
       <FormField error={form.formState.errors.periodoAcademicoId?.message} htmlFor="scheduled-period" label="Periodo">
-        <select className="form-select" disabled={mode === 'edit' || catalogState.loading || catalogState.error} id="scheduled-period" {...form.register('periodoAcademicoId')}>
+        <select aria-describedby={form.formState.errors.periodoAcademicoId ? 'scheduled-period-error' : undefined} aria-errormessage={form.formState.errors.periodoAcademicoId ? 'scheduled-period-error' : undefined} aria-invalid={Boolean(form.formState.errors.periodoAcademicoId)} className="form-select" disabled={pending || mode === 'edit' || catalogState.loading || catalogState.error} id="scheduled-period" {...form.register('periodoAcademicoId')}>
           <option value="">Seleccionar</option>
           {mode === 'edit' && course ? <option value={course.periodoAcademicoId}>{course.periodoNombre}</option> : null}
           {availablePeriods.filter((item) => mode !== 'edit' || item.id !== course?.periodoAcademicoId).map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
         </select>
       </FormField>
       <FormField error={form.formState.errors.profesorPersonaId?.message} htmlFor="scheduled-teacher" label="Profesor">
-        <select className="form-select" disabled={catalogState.loading || catalogState.error} id="scheduled-teacher" {...form.register('profesorPersonaId')}>
+        <select aria-describedby={form.formState.errors.profesorPersonaId ? 'scheduled-teacher-error' : undefined} aria-errormessage={form.formState.errors.profesorPersonaId ? 'scheduled-teacher-error' : undefined} aria-invalid={Boolean(form.formState.errors.profesorPersonaId)} className="form-select" disabled={pending || catalogState.loading || catalogState.error} id="scheduled-teacher" {...form.register('profesorPersonaId')}>
           <option value="">Seleccionar</option>
           {mode === 'edit' && course ? <option value={course.profesorPersonaId}>{course.profesorApellidoPaterno}, {course.profesorNombres}</option> : null}
           {teachers.filter((item) => mode !== 'edit' || item.id !== course?.profesorPersonaId).map((item) => <option key={item.id} value={item.id}>{item.apellidoPaterno}, {item.nombres}</option>)}
         </select>
       </FormField>
       <FormField error={form.formState.errors.seccion?.message} htmlFor="scheduled-section" label="Sección">
-        <Input id="scheduled-section" maxLength={30} {...form.register('seccion')} />
+        <Input aria-describedby={form.formState.errors.seccion ? 'scheduled-section-error' : undefined} aria-errormessage={form.formState.errors.seccion ? 'scheduled-section-error' : undefined} aria-invalid={Boolean(form.formState.errors.seccion)} disabled={pending} id="scheduled-section" maxLength={30} {...form.register('seccion')} />
       </FormField>
       {mode === 'edit' ? (
         <FormField error={form.formState.errors.estado?.message} htmlFor="scheduled-state" label="Estado">
-          <select className="form-select" id="scheduled-state" {...form.register('estado')}>
+          <select aria-describedby={form.formState.errors.estado ? 'scheduled-state-error' : undefined} aria-errormessage={form.formState.errors.estado ? 'scheduled-state-error' : undefined} aria-invalid={Boolean(form.formState.errors.estado)} className="form-select" disabled={pending} id="scheduled-state" {...form.register('estado')}>
             <option value="activo">Activo</option>
             <option value="inactivo">Inactivo</option>
           </select>
@@ -190,6 +195,10 @@ export function ScheduledCourseForm({
       ) : null}
       <FormField error={form.formState.errors.cupoMaximo?.message} htmlFor="scheduled-capacity" label="Cupo máximo">
         <Input
+          aria-describedby={form.formState.errors.cupoMaximo ? 'scheduled-capacity-error' : undefined}
+          aria-errormessage={form.formState.errors.cupoMaximo ? 'scheduled-capacity-error' : undefined}
+          aria-invalid={Boolean(form.formState.errors.cupoMaximo)}
+          disabled={pending}
           id="scheduled-capacity"
           min={1}
           type="number"
@@ -202,6 +211,7 @@ export function ScheduledCourseForm({
         aria-describedby={scheduleCollectionError ? 'scheduled-course-schedules-error' : undefined}
         aria-invalid={Boolean(scheduleCollectionError)}
         className="schedule-fieldset"
+        disabled={pending}
       >
         <legend>Horarios</legend>
         {scheduleFields.fields.map((field, index) => {
