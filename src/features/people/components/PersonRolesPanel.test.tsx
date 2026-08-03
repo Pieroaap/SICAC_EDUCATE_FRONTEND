@@ -245,4 +245,37 @@ describe('PersonRolesPanel', () => {
     expect(error).not.toHaveBeenCalledWith(expect.stringContaining('unique "key"'));
     error.mockRestore();
   });
+
+  it('no recarga el perfil cuando el rol modificado pertenece a otra persona', async () => {
+    const user = userEvent.setup();
+    const reloadProfile = vi.fn().mockResolvedValue({});
+    vi.mocked(useAuth).mockReturnValue({ reloadProfile } as never);
+    vi.mocked(deactivatePersonRole).mockResolvedValue({});
+    renderPanel({ actorId: 'another-person' });
+
+    await user.click(screen.getAllByRole('button', { name: 'Quitar' })[0]!);
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Quitar rol' }));
+
+    await waitFor(() => expect(deactivatePersonRole).toHaveBeenCalledOnce());
+    expect(reloadProfile).not.toHaveBeenCalled();
+  });
+
+  it('conserva el borrador de alta al abrir y cancelar un cambio de rol', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getCareers).mockResolvedValue([{ id: 'career-1', codigo: 'ART', nombre: 'Artes', descripcion: null, estado: 'activo' }]);
+    vi.mocked(getAcademicPeriods).mockResolvedValue([{ id: 'period-1', carreraId: 'career-1', anio: 2026, periodo: 'II', nombre: '2026-II', fechaInicio: '2026-01-01', fechaFin: '2026-12-31', estado: 'activo' }]);
+    renderPanel();
+
+    await screen.findByRole('option', { name: 'Artes' });
+    await user.selectOptions(screen.getByLabelText('Carrera para el rol alumno'), 'career-1');
+    await user.selectOptions(await screen.findByLabelText('Periodo de ingreso del rol alumno'), 'period-1');
+    await user.click(screen.getAllByRole('button', { name: 'Cambiar rol' })[0]!);
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByLabelText('Carrera para el rol alumno')).toHaveValue('');
+    expect(within(dialog).getByLabelText('Periodo de ingreso del rol alumno')).toHaveValue('');
+
+    await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }));
+    expect(screen.getByLabelText('Carrera para el rol alumno')).toHaveValue('career-1');
+    expect(screen.getByLabelText('Periodo de ingreso del rol alumno')).toHaveValue('period-1');
+  });
 });
