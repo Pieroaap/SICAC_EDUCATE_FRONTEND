@@ -123,3 +123,23 @@ export async function assignPersonRole(
   const { data } = await api.post(`/personas/${personId}/roles`, input);
   return data;
 }
+
+export async function deactivatePersonRole(personId: string, role: RoleCode) {
+  const { data } = await api.patch(`/personas/${personId}/roles/${role}`, { estado: 'inactivo' });
+  return data;
+}
+
+export async function changePersonRole(
+  personId: string,
+  input: {
+    fromRole: RoleCode;
+    toRole: RoleCode;
+    student?: {
+      carreraId: string; periodoInicioId: string; estado: 'activo';
+      beneficio: 'normal'; tipoBeneficio: 'regular';
+    };
+  },
+) {
+  const { data } = await api.post(`/personas/${personId}/roles/cambiar`, input);
+  return data;
+}

@@ -11,6 +11,7 @@ const buttonVariants = cva(
         primary: 'bg-brand text-white shadow-sm hover:bg-brand-hover',
         secondary: 'border border-line bg-surface text-ink hover:bg-canvas',
         ghost: 'text-ink-secondary hover:bg-canvas hover:text-ink',
+        destructive: 'border border-brand/35 bg-brand/10 text-brand hover:bg-brand/15',
       },
     },
     defaultVariants: { variant: 'primary' },

@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { getApiErrorMessage } from '../../../api/client';
 import type { PersonDetail, RoleCode } from '../../../api/types';
 import { Button } from '../../../components/ui/Button';
 import { getAcademicPeriods, getCareers } from '../../academic-structure/api/academicStructureApi';
-import { assignPersonRole } from '../api/peopleApi';
+import { hasActiveRole } from '../personActions';
+import { assignPersonRole, changePersonRole, deactivatePersonRole } from '../api/peopleApi';
 
 const roleOptions: Array<{ value: RoleCode; label: string }> = [
   { value: 'ALUMNO', label: 'Alumno' },
@@ -14,73 +16,105 @@ const roleOptions: Array<{ value: RoleCode; label: string }> = [
 ];
 const periodOrder = { I: 1, II: 2, III: 3 } as const;
 
-export function PersonRolesPanel({ person, actorRoles }: { person: PersonDetail; actorRoles: RoleCode[] }) {
+type StudentRoleInput = {
+  carreraId: string; periodoInicioId: string; estado: 'activo'; beneficio: 'normal'; tipoBeneficio: 'regular';
+};
+type PendingAction = { type: 'remove' | 'change'; role: RoleCode; name: string };
+type Props = {
+  actorPersonaId?: string;
+  actorRoles: RoleCode[];
+  onFeedback: (feedback: { type: 'success' | 'error'; message: string }) => void;
+  person: PersonDetail;
+};
+
+function assignmentKey(role: PersonDetail['roles'][number]) {
+  return `${role.codigo}-${role.fechaInicio}-${role.estado}-${role.fechaFin ?? 'vigente'}`;
+}
+
+export function PersonRolesPanel({ actorPersonaId, actorRoles, onFeedback, person }: Props) {
   const queryClient = useQueryClient();
-  const availableRoles = roleOptions.filter((option) => !person.roles.some(
-    (assigned) => assigned.codigo === option.value && assigned.estado === 'activo',
-  ));
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const activeAssignments = person.roles.filter((assigned) => assigned.estado === 'activo' && !assigned.fechaFin);
+  const availableRoles = roleOptions.filter((option) => !hasActiveRole(person, option.value));
   const [role, setRole] = useState<RoleCode>(() => availableRoles[0]?.value ?? 'PROFESOR');
+  const [replacementRole, setReplacementRole] = useState<RoleCode>('PROFESOR');
   const [careerId, setCareerId] = useState('');
   const [periodId, setPeriodId] = useState('');
-  const careers = useQuery({ queryKey: ['academic', 'careers'], queryFn: getCareers, enabled: role === 'ALUMNO' });
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const needsStudentFields = role === 'ALUMNO' || (pendingAction?.type === 'change' && replacementRole === 'ALUMNO');
+  const careers = useQuery({ queryKey: ['academic', 'careers'], queryFn: getCareers, enabled: needsStudentFields });
   const periods = useQuery({
     queryKey: ['academic', 'periods', careerId],
     queryFn: () => getAcademicPeriods({ carreraId: careerId }),
-    enabled: role === 'ALUMNO' && Boolean(careerId),
+    enabled: needsStudentFields && Boolean(careerId),
   });
   const today = new Date().toISOString().slice(0, 10);
-  const currentPeriod = periods.data?.find((period) => (
-    period.fechaInicio <= today && period.fechaFin >= today
-  ));
+  const currentPeriod = periods.data?.find((period) => period.fechaInicio <= today && period.fechaFin >= today);
   const eligiblePeriods = currentPeriod
-    ? periods.data?.filter((period) => (
-      period.anio > currentPeriod.anio
-      || (period.anio === currentPeriod.anio
-        && periodOrder[period.periodo] >= periodOrder[currentPeriod.periodo])
-    )).sort((left, right) => (
-      left.anio - right.anio || periodOrder[left.periodo] - periodOrder[right.periodo]
-    )) ?? []
+    ? [...(periods.data?.filter((period) => (
+      period.anio > currentPeriod.anio || (period.anio === currentPeriod.anio && periodOrder[period.periodo] >= periodOrder[currentPeriod.periodo])
+    )) ?? [])].sort((left, right) => left.anio - right.anio || periodOrder[left.periodo] - periodOrder[right.periodo])
     : [];
-  const mutation = useMutation({
-    mutationFn: () => assignPersonRole(person.id, {
-      role,
-      ...(role === 'ALUMNO' ? {
-        student: {
-          carreraId: careerId, periodoInicioId: periodId,
-          estado: 'activo' as const, beneficio: 'normal' as const, tipoBeneficio: 'regular' as const,
-        },
-      } : {}),
-    }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['person', person.id] }),
+  const isSelf = actorPersonaId === person.id;
+  const student = (): StudentRoleInput => ({ carreraId: careerId, periodoInicioId: periodId, estado: 'activo', beneficio: 'normal', tipoBeneficio: 'regular' });
+
+  async function refreshRoles() {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['person', person.id] }),
+      queryClient.invalidateQueries({ queryKey: ['people'] }),
+      queryClient.invalidateQueries({ queryKey: ['students'] }),
+      queryClient.invalidateQueries({ queryKey: ['teachers'] }),
+    ]);
+    if (isSelf) await queryClient.invalidateQueries({ queryKey: ['auth', 'profile'] });
+  }
+  function closeDialog() {
+    dialogRef.current?.close();
+    setPendingAction(null);
+    setActionError(null);
+  }
+  function openAction(action: PendingAction) {
+    setActionError(null);
+    setPendingAction(action);
+    if (action.type === 'change') setReplacementRole(availableRoles[0]?.value ?? 'PROFESOR');
+    dialogRef.current?.showModal();
+  }
+  const addMutation = useMutation({
+    mutationFn: () => assignPersonRole(person.id, { role, ...(role === 'ALUMNO' ? { student: student() } : {}) }),
+    onSuccess: async () => { onFeedback({ type: 'success', message: 'Rol agregado correctamente.' }); await refreshRoles(); },
+    onError: (error) => onFeedback({ type: 'error', message: getApiErrorMessage(error, 'No pudimos agregar el rol.') }),
   });
+  const removeMutation = useMutation({
+    mutationFn: (fromRole: RoleCode) => deactivatePersonRole(person.id, fromRole),
+    onSuccess: async () => { closeDialog(); onFeedback({ type: 'success', message: 'Rol retirado correctamente.' }); await refreshRoles(); },
+    onError: (error) => setActionError(getApiErrorMessage(error, 'No pudimos retirar el rol.')),
+  });
+  const changeMutation = useMutation({
+    mutationFn: ({ fromRole, toRole }: { fromRole: RoleCode; toRole: RoleCode }) => changePersonRole(person.id, { fromRole, toRole, ...(toRole === 'ALUMNO' ? { student: student() } : {}) }),
+    onSuccess: async () => { closeDialog(); onFeedback({ type: 'success', message: 'Rol cambiado correctamente.' }); await refreshRoles(); },
+    onError: (error) => setActionError(getApiErrorMessage(error, 'No pudimos cambiar el rol.')),
+  });
+
   if (!actorRoles.includes('ADMINISTRADOR_SISTEMA')) return null;
   return (
-    <div className="detail-panel action-panel">
-      <h3>Agregar rol</h3>
-      <p>Asigna un rol adicional sin reemplazar los roles vigentes.</p>
-      <select aria-label="Nuevo rol" className="form-select" disabled={availableRoles.length === 0} onChange={(event) => setRole(event.target.value as RoleCode)} value={role}>
-        {availableRoles.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
-      {role === 'ALUMNO' ? (
-        <>
-          <select aria-label="Carrera para el rol alumno" className="form-select" onChange={(event) => { setCareerId(event.target.value); setPeriodId(''); }} value={careerId}>
-            <option value="">Carrera</option>
-            {careers.data?.filter((item) => item.estado === 'activo').map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
-          </select>
-          <select aria-label="Periodo de ingreso del rol alumno" className="form-select" onChange={(event) => setPeriodId(event.target.value)} value={periodId}>
-            <option value="">Periodo de inicio</option>
-            {eligiblePeriods.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
-          </select>
-          {careerId && !periods.isPending && !currentPeriod ? (
-            <small>La carrera no tiene un periodo académico vigente.</small>
-          ) : null}
-        </>
-      ) : null}
-      <Button disabled={availableRoles.length === 0 || mutation.isPending || (role === 'ALUMNO' && (!careerId || !periodId))} onClick={() => mutation.mutate()} type="button">
-        {mutation.isPending ? 'Asignando…' : 'Agregar rol'}
-      </Button>
-      {availableRoles.length === 0 ? <small>La persona ya tiene todos los roles disponibles.</small> : null}
-      {mutation.isError ? <small>No se pudo asignar el rol.</small> : null}
+    <div className="detail-panel action-panel person-roles-panel">
+      <header><p className="eyebrow">Control de acceso</p><h3>Administrar roles</h3><p>Gestiona únicamente las asignaciones vigentes. El servidor valida cada operación.</p></header>
+      <div>
+        <h4>Roles vigentes</h4>
+        {activeAssignments.length ? <ul aria-label="Roles vigentes" className="person-roles-panel__list">{activeAssignments.map((assignment) => {
+          const isOwnAdministrator = isSelf && assignment.codigo === 'ADMINISTRADOR_SISTEMA';
+          const onlyActiveRole = activeAssignments.length === 1;
+          const cannotRemove = isOwnAdministrator || onlyActiveRole;
+          const cannotChange = isOwnAdministrator || availableRoles.length === 0;
+          return <li key={assignmentKey(assignment)}><div><strong>{assignment.nombre}</strong><small>Vigente desde {assignment.fechaInicio}</small></div><div className="button-row"><Button disabled={cannotChange || changeMutation.isPending || removeMutation.isPending} onClick={() => openAction({ type: 'change', role: assignment.codigo, name: assignment.nombre })} type="button" variant="secondary">Cambiar rol</Button><Button disabled={cannotRemove || changeMutation.isPending || removeMutation.isPending} onClick={() => openAction({ type: 'remove', role: assignment.codigo, name: assignment.nombre })} type="button" variant="destructive">Quitar</Button></div>{isOwnAdministrator ? <small>No puedes retirarte ni cambiar tu propio rol administrativo.</small> : null}{!isOwnAdministrator && onlyActiveRole ? <small>No se puede quitar el único rol activo de la persona.</small> : null}{!isOwnAdministrator && !onlyActiveRole && availableRoles.length === 0 ? <small>No hay otro rol disponible para el cambio.</small> : null}</li>;
+        })}</ul> : <p>No hay roles activos para administrar.</p>}
+      </div>
+      <section aria-labelledby="add-role-heading"><h4 id="add-role-heading">Agregar rol</h4><p>Asigna un rol adicional sin reemplazar los roles vigentes.</p><select aria-label="Nuevo rol" className="form-select" disabled={availableRoles.length === 0 || addMutation.isPending} onChange={(event) => setRole(event.target.value as RoleCode)} value={role}>{availableRoles.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>{needsStudentFields && pendingAction === null ? <StudentFields careerId={careerId} careers={careers.data} currentPeriod={currentPeriod} eligiblePeriods={eligiblePeriods} onCareerChange={(nextCareerId) => { setCareerId(nextCareerId); setPeriodId(''); }} onPeriodChange={setPeriodId} periodId={periodId} periodsPending={periods.isPending} /> : null}<Button disabled={availableRoles.length === 0 || addMutation.isPending || (role === 'ALUMNO' && (!careerId || !periodId))} onClick={() => addMutation.mutate()} type="button">{addMutation.isPending ? 'Agregando…' : 'Agregar rol'}</Button>{availableRoles.length === 0 ? <small>La persona ya tiene todos los roles disponibles.</small> : null}</section>
+      <dialog aria-labelledby="role-action-title" className="roles-dialog" onCancel={(event) => { event.preventDefault(); closeDialog(); }} ref={dialogRef}><form onSubmit={(event) => { event.preventDefault(); if (pendingAction?.type === 'remove') removeMutation.mutate(pendingAction.role); if (pendingAction?.type === 'change') changeMutation.mutate({ fromRole: pendingAction.role, toRole: replacementRole }); }}><header><p className="eyebrow">Confirmar acción</p><h2 id="role-action-title">{pendingAction?.type === 'remove' ? 'Quitar rol' : 'Cambiar rol'}</h2><p>{pendingAction?.type === 'remove' ? `Se retirará el rol ${pendingAction.name}.` : `Se reemplazará el rol ${pendingAction?.name ?? ''} de forma atómica.`}</p></header>{pendingAction?.type === 'change' ? <><label className="select-filter"><span>Nuevo rol para reemplazar</span><select aria-label="Nuevo rol para reemplazar" className="form-select" disabled={changeMutation.isPending} onChange={(event) => setReplacementRole(event.target.value as RoleCode)} value={replacementRole}>{availableRoles.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>{replacementRole === 'ALUMNO' ? <StudentFields careerId={careerId} careers={careers.data} currentPeriod={currentPeriod} eligiblePeriods={eligiblePeriods} onCareerChange={(nextCareerId) => { setCareerId(nextCareerId); setPeriodId(''); }} onPeriodChange={setPeriodId} periodId={periodId} periodsPending={periods.isPending} /> : null}</> : null}{actionError ? <div className="error-banner" role="alert">{actionError}</div> : null}<footer><Button disabled={removeMutation.isPending || changeMutation.isPending} onClick={closeDialog} type="button" variant="secondary">Cancelar</Button><Button disabled={removeMutation.isPending || changeMutation.isPending || (pendingAction?.type === 'change' && replacementRole === 'ALUMNO' && (!careerId || !periodId))} type="submit" variant={pendingAction?.type === 'remove' ? 'destructive' : 'primary'}>{pendingAction?.type === 'remove' ? 'Quitar rol' : 'Cambiar rol'}</Button></footer></form></dialog>
     </div>
   );
+}
+
+function StudentFields({ careerId, careers, currentPeriod, eligiblePeriods, onCareerChange, onPeriodChange, periodId, periodsPending }: { careerId: string; careers?: Awaited<ReturnType<typeof getCareers>>; currentPeriod?: Awaited<ReturnType<typeof getAcademicPeriods>>[number]; eligiblePeriods: Awaited<ReturnType<typeof getAcademicPeriods>>; onCareerChange: (careerId: string) => void; onPeriodChange: (periodId: string) => void; periodId: string; periodsPending: boolean }) {
+  return <div className="person-roles-panel__student-fields"><select aria-label="Carrera para el rol alumno" className="form-select" onChange={(event) => onCareerChange(event.target.value)} value={careerId}><option value="">Carrera</option>{careers?.filter((item) => item.estado === 'activo').map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select><select aria-label="Periodo de ingreso del rol alumno" className="form-select" onChange={(event) => onPeriodChange(event.target.value)} value={periodId}><option value="">Periodo de inicio</option>{eligiblePeriods.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select>{careerId && !periodsPending && !currentPeriod ? <small>La carrera no tiene un periodo académico vigente.</small> : null}</div>;
 }
