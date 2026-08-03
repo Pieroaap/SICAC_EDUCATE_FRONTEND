@@ -278,4 +278,39 @@ describe('PersonRolesPanel', () => {
     expect(screen.getByLabelText('Carrera para el rol alumno')).toHaveValue('career-1');
     expect(screen.getByLabelText('Periodo de ingreso del rol alumno')).toHaveValue('period-1');
   });
+
+  it('limpia el borrador de alta de Alumno después de agregarlo', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getCareers).mockResolvedValue([{ id: 'career-1', codigo: 'ART', nombre: 'Artes', descripcion: null, estado: 'activo' }]);
+    vi.mocked(getAcademicPeriods).mockResolvedValue([{ id: 'period-1', carreraId: 'career-1', anio: 2026, periodo: 'II', nombre: '2026-II', fechaInicio: '2026-01-01', fechaFin: '2026-12-31', estado: 'activo' }]);
+    vi.mocked(assignPersonRole).mockResolvedValue({});
+    renderPanel();
+
+    await screen.findByRole('option', { name: 'Artes' });
+    await user.selectOptions(screen.getByLabelText('Carrera para el rol alumno'), 'career-1');
+    await user.selectOptions(await screen.findByLabelText('Periodo de ingreso del rol alumno'), 'period-1');
+    await user.click(screen.getByRole('button', { name: 'Agregar rol' }));
+
+    await waitFor(() => expect(assignPersonRole).toHaveBeenCalledOnce());
+    expect(screen.getByLabelText('Carrera para el rol alumno')).toHaveValue('');
+    expect(screen.getByLabelText('Periodo de ingreso del rol alumno')).toHaveValue('');
+  });
+
+  it('limpia el borrador del cambio al dejar de elegir Alumno', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getCareers).mockResolvedValue([{ id: 'career-1', codigo: 'ART', nombre: 'Artes', descripcion: null, estado: 'activo' }]);
+    vi.mocked(getAcademicPeriods).mockResolvedValue([{ id: 'period-1', carreraId: 'career-1', anio: 2026, periodo: 'II', nombre: '2026-II', fechaInicio: '2026-01-01', fechaFin: '2026-12-31', estado: 'activo' }]);
+    renderPanel();
+
+    await user.click(screen.getAllByRole('button', { name: 'Cambiar rol' })[0]!);
+    const dialog = screen.getByRole('dialog');
+    await screen.findByRole('option', { name: 'Artes' });
+    await user.selectOptions(within(dialog).getByLabelText('Carrera para el rol alumno'), 'career-1');
+    await user.selectOptions(await within(dialog).findByLabelText('Periodo de ingreso del rol alumno'), 'period-1');
+    await user.selectOptions(within(dialog).getByLabelText('Nuevo rol para reemplazar'), 'DIRECTOR_ACADEMICO');
+    await user.selectOptions(within(dialog).getByLabelText('Nuevo rol para reemplazar'), 'ALUMNO');
+
+    expect(within(dialog).getByLabelText('Carrera para el rol alumno')).toHaveValue('');
+    expect(within(dialog).getByLabelText('Periodo de ingreso del rol alumno')).toHaveValue('');
+  });
 });
