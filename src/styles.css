@@ -1783,6 +1783,26 @@ button:disabled { cursor: default; }
 .attendance-dialog label { display: grid; gap: 0.35rem; color: var(--ink-muted); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; }
 .attendance-dialog textarea { min-height: 120px; resize: vertical; padding: 0.75rem; border: 1px solid var(--control-line); border-radius: 8px; color: var(--ink); background: var(--control); }
 .attendance-dialog footer, .reactivation-list footer { display: flex; justify-content: flex-end; gap: 0.55rem; }
+.roles-dialog {
+  width: min(92vw, 540px);
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.22);
+}
+.roles-dialog::backdrop { background: rgba(5, 5, 5, 0.58); backdrop-filter: blur(3px); }
+.roles-dialog form { display: grid; gap: 1rem; padding: 1.25rem; }
+.roles-dialog header { padding-bottom: 0.9rem; border-bottom: 1px solid var(--line); }
+.roles-dialog h2 { margin: 0.15rem 0; font-size: 1.2rem; }
+.roles-dialog header > p:last-child { margin: 0.35rem 0 0; color: var(--ink-muted); }
+.roles-dialog .select-filter { width: 100%; }
+.roles-dialog footer { display: flex; justify-content: flex-end; gap: 0.55rem; }
+.person-roles-panel__list { display: grid; gap: 0.65rem; padding: 0; margin: 0; list-style: none; }
+.person-roles-panel__list > li { display: grid; gap: 0.55rem; padding: 0.8rem; border: 1px solid var(--line); border-radius: 12px; background: color-mix(in srgb, var(--canvas) 40%, var(--surface)); }
+.person-roles-panel__list small { color: var(--ink-muted); }
+.person-roles-panel__student-fields { display: grid; gap: 0.65rem; }
 .reactivation-list { display: grid; gap: 0.75rem; }
 .reactivation-list > article { display: grid; gap: 0.75rem; padding: 1rem; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
 .reactivation-list article > header { display: flex; justify-content: space-between; gap: 1rem; }
@@ -1805,6 +1825,7 @@ button:disabled { cursor: default; }
   .attendance-student { grid-template-columns: 1fr; }
   .attendance-summary { grid-column: auto; overflow-x: auto; }
   .attendance-dialog footer, .reactivation-list footer { flex-direction: column-reverse; }
+  .roles-dialog footer { flex-direction: column-reverse; }
 }
 
 @media (max-width: 520px) {

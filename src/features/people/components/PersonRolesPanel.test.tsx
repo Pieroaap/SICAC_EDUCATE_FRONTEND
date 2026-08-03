@@ -3,7 +3,9 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PersonDetail, RoleCode } from '../../../api/types';
-import { changePersonRole, deactivatePersonRole } from '../api/peopleApi';
+import { getAcademicPeriods, getCareers } from '../../academic-structure/api/academicStructureApi';
+import { useAuth } from '../../auth/AuthProvider';
+import { assignPersonRole, changePersonRole, deactivatePersonRole } from '../api/peopleApi';
 import { PersonRolesPanel } from './PersonRolesPanel';
 
 vi.mock('../../academic-structure/api/academicStructureApi', () => ({
@@ -17,10 +19,13 @@ vi.mock('../api/peopleApi', () => ({
   deactivatePersonRole: vi.fn(),
 }));
 
+vi.mock('../../auth/AuthProvider', () => ({ useAuth: vi.fn() }));
+
 afterEach(cleanup);
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(useAuth).mockReturnValue({ reloadProfile: vi.fn() } as never);
   Object.defineProperty(HTMLDialogElement.prototype, 'showModal', {
     configurable: true,
     value() { this.setAttribute('open', ''); },
@@ -69,7 +74,7 @@ function renderPanel({
 } = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const onFeedback = vi.fn();
-  render(
+  const view = render(
     <QueryClientProvider client={client}>
       <PersonRolesPanel
         actorPersonaId={actorId}
@@ -79,7 +84,7 @@ function renderPanel({
       />
     </QueryClientProvider>,
   );
-  return { onFeedback };
+  return { ...view, onFeedback };
 }
 
 describe('PersonRolesPanel', () => {
@@ -178,5 +183,66 @@ describe('PersonRolesPanel', () => {
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Quitar rol' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('El rol mantiene responsabilidades activas.');
+  });
+
+  it('recarga el perfil real solo cuando la mutación afecta al actor autenticado', async () => {
+    const user = userEvent.setup();
+    const reloadProfile = vi.fn().mockResolvedValue({});
+    vi.mocked(useAuth).mockReturnValue({ reloadProfile } as never);
+    vi.mocked(deactivatePersonRole).mockResolvedValue({});
+    renderPanel({ actorId: 'person-1' });
+
+    await user.click(screen.getAllByRole('button', { name: 'Quitar' })[0]!);
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Quitar rol' }));
+
+    await waitFor(() => expect(reloadProfile).toHaveBeenCalledOnce());
+  });
+
+  it('envía el contexto de alumno al cambiar hacia ALUMNO', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getCareers).mockResolvedValue([{ id: 'career-1', codigo: 'ART', nombre: 'Artes', descripcion: null, estado: 'activo' }]);
+    vi.mocked(getAcademicPeriods).mockResolvedValue([{ id: 'period-1', carreraId: 'career-1', anio: 2026, periodo: 'II', nombre: '2026-II', fechaInicio: '2026-01-01', fechaFin: '2026-12-31', estado: 'activo' }]);
+    vi.mocked(changePersonRole).mockResolvedValue({});
+    renderPanel();
+
+    await user.click(screen.getAllByRole('button', { name: 'Cambiar rol' })[0]!);
+    const dialog = screen.getByRole('dialog');
+    await user.selectOptions(within(dialog).getByLabelText('Carrera para el rol alumno'), 'career-1');
+    await user.selectOptions(await within(dialog).findByLabelText('Periodo de ingreso del rol alumno'), 'period-1');
+    await user.click(within(dialog).getByRole('button', { name: 'Cambiar rol' }));
+
+    await waitFor(() => expect(changePersonRole).toHaveBeenCalledWith('person-1', {
+      fromRole: 'PROFESOR',
+      toRole: 'ALUMNO',
+      student: { carreraId: 'career-1', periodoInicioId: 'period-1', estado: 'activo', beneficio: 'normal', tipoBeneficio: 'regular' },
+    }));
+  });
+
+  it('sincroniza el selector si el rol elegido se vuelve activo tras refrescar', async () => {
+    const { rerender } = renderPanel();
+    expect(screen.getByLabelText('Nuevo rol')).toHaveValue('ALUMNO');
+
+    rerender(
+      <QueryClientProvider client={new QueryClient()}>
+        <PersonRolesPanel
+          actorRoles={['ADMINISTRADOR_SISTEMA']}
+          onFeedback={vi.fn()}
+          person={personWithRoles([{ code: 'PROFESOR' }, { code: 'GESTOR_ACADEMICO' }, { code: 'ALUMNO' }])}
+        />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByLabelText('Nuevo rol')).toHaveValue('DIRECTOR_ACADEMICO'));
+    expect(screen.getByRole('button', { name: 'Agregar rol' })).toBeEnabled();
+    expect(assignPersonRole).not.toHaveBeenCalled();
+  });
+
+  it('usa claves compuestas para asignaciones del mismo rol en fechas distintas', () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    renderPanel({ person: personWithRoles([{ code: 'PROFESOR' }, { code: 'PROFESOR' }]) });
+
+    expect(within(screen.getByRole('list', { name: 'Roles vigentes' })).getAllByRole('listitem')).toHaveLength(2);
+    expect(error).not.toHaveBeenCalledWith(expect.stringContaining('unique "key"'));
+    error.mockRestore();
   });
 });
