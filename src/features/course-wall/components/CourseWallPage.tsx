@@ -6,9 +6,11 @@ import { getApiErrorMessage } from '../../../api/client';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { useAuth } from '../../auth/AuthProvider';
-import { downloadDocument } from '../../documents/api/documentsApi';
+import { downloadDocument, removeDocument } from '../../documents/api/documentsApi';
 import { createCoursePost, getCourseWall, removeCoursePost, updateCoursePost, uploadCourseAttachment } from '../api/courseWallApi';
 import { parseWallText } from '../courseWallText';
+
+type PostActionError = { postId: string; message: string };
 
 function LinkedWallText({ text }: { text: string }) {
   return (
@@ -28,6 +30,9 @@ export function CourseWallPage() {
   const [titulo, setTitulo] = useState('');
   const [contenido, setContenido] = useState('');
   const [files, setFiles] = useState<File[]>([]);
+  const [uploadedDocumentIds, setUploadedDocumentIds] = useState<string[]>([]);
+  const [isDiscardingAttachments, setIsDiscardingAttachments] = useState(false);
+  const [postActionError, setPostActionError] = useState<PostActionError | null>(null);
   const roleCodes = profile?.roles.map((role) => role.codigo) ?? [];
   const isStudent = roleCodes.includes('ALUMNO');
   const isTeacher = roleCodes.includes('PROFESOR') && !isStudent;
@@ -38,25 +43,66 @@ export function CourseWallPage() {
   const backLabel = isStudent ? 'Volver al curso' : isTeacher ? 'Volver a evaluación' : 'Volver a cursos programados';
   const wall = useQuery({ queryKey: ['course-wall', courseId], queryFn: () => getCourseWall(courseId), enabled: Boolean(courseId) });
   const refresh = () => client.invalidateQueries({ queryKey: ['course-wall', courseId] });
-  const closeComposer = () => {
+  const discardUploadedAttachments = async (ids = uploadedDocumentIds) => {
+    if (!ids.length) return;
+    setIsDiscardingAttachments(true);
+    await Promise.allSettled(ids.map((id) => removeDocument(id)));
+    setUploadedDocumentIds((current) => current.filter((id) => !ids.includes(id)));
+    setIsDiscardingAttachments(false);
+  };
+  const closeComposer = async () => {
+    await discardUploadedAttachments();
     composerDialogRef.current?.close();
     document.getElementById('course-wall-new-post')?.focus();
   };
+  const replaceFiles = async (nextFiles: File[]) => {
+    await discardUploadedAttachments();
+    setFiles(nextFiles.slice(0, 5));
+  };
   const create = useMutation({
     mutationFn: async () => {
-      const attachments = await Promise.all(files.map((file) => uploadCourseAttachment(courseId, file)));
-      return createCoursePost(courseId, { titulo, contenido, documentIds: attachments.map((item) => item.id) });
+      const newDocumentIds: string[] = [];
+      try {
+        for (const file of files.slice(uploadedDocumentIds.length)) {
+          const attachment = await uploadCourseAttachment(courseId, file);
+          newDocumentIds.push(attachment.id);
+          setUploadedDocumentIds([...uploadedDocumentIds, ...newDocumentIds]);
+        }
+      } catch (error) {
+        await discardUploadedAttachments([...uploadedDocumentIds, ...newDocumentIds]);
+        throw error;
+      }
+
+      return createCoursePost(courseId, {
+        titulo,
+        contenido,
+        documentIds: [...uploadedDocumentIds, ...newDocumentIds],
+      });
     },
     onSuccess: async () => {
       await refresh();
       setTitulo('');
       setContenido('');
       setFiles([]);
-      closeComposer();
+      setUploadedDocumentIds([]);
+      composerDialogRef.current?.close();
+      document.getElementById('course-wall-new-post')?.focus();
     },
   });
-  const pin = useMutation({ mutationFn: ({ id, fijada }: { id: string; fijada: boolean }) => updateCoursePost(id, { fijada }), onSuccess: refresh });
-  const remove = useMutation({ mutationFn: removeCoursePost, onSuccess: refresh });
+  const pin = useMutation({
+    mutationFn: ({ id, fijada }: { id: string; fijada: boolean }) => updateCoursePost(id, { fijada }),
+    onMutate: () => setPostActionError(null),
+    onError: (error, variables) => setPostActionError({ postId: variables.id, message: getApiErrorMessage(error, 'No pudimos actualizar la publicación.') }),
+    onSuccess: async () => { setPostActionError(null); await refresh(); },
+  });
+  const remove = useMutation({
+    mutationFn: ({ id }: { id: string }) => removeCoursePost(id),
+    onMutate: () => setPostActionError(null),
+    onError: (error, variables) => setPostActionError({ postId: variables.id, message: getApiErrorMessage(error, 'No pudimos actualizar la publicación.') }),
+    onSuccess: async () => { setPostActionError(null); await refresh(); },
+  });
+  const isComposerBusy = create.isPending || isDiscardingAttachments;
+  const canOpenComposer = canWrite && wall.isSuccess;
 
   return (
     <main className="page-shell">
@@ -66,17 +112,17 @@ export function CourseWallPage() {
           <p className="eyebrow">{wall.data?.course.code ?? 'Curso programado'}</p>
           <h1>Muro de Curso{wall.data?.course.name ? ` - ${wall.data.course.name}` : ''}</h1>
         </div>
-        {canWrite ? <Button id="course-wall-new-post" onClick={() => composerDialogRef.current?.showModal()} type="button">Nueva publicación</Button> : null}
+        {canOpenComposer ? <Button id="course-wall-new-post" onClick={() => composerDialogRef.current?.showModal()} type="button">Nueva publicación</Button> : null}
       </header>
-      {canWrite ? (
+      {canOpenComposer ? (
         <dialog
           aria-labelledby="wall-composer-title"
           className="wall-composer-dialog"
-          onCancel={(event) => { event.preventDefault(); closeComposer(); }}
+          onCancel={(event) => { event.preventDefault(); void closeComposer(); }}
           onKeyDown={(event) => {
             if (event.key === 'Escape') {
               event.preventDefault();
-              closeComposer();
+              void closeComposer();
             }
           }}
           ref={composerDialogRef}
@@ -89,11 +135,11 @@ export function CourseWallPage() {
             </header>
             <label className="wall-composer__field" htmlFor="wall-post-title">
               <span>Título de la publicación</span>
-              <Input disabled={create.isPending} id="wall-post-title" onChange={(event) => setTitulo(event.target.value)} required value={titulo} />
+              <Input disabled={isComposerBusy} id="wall-post-title" onChange={(event) => setTitulo(event.target.value)} required value={titulo} />
             </label>
             <label className="wall-composer__field" htmlFor="wall-post-content">
               <span>Contenido de la publicación</span>
-              <textarea className="form-textarea" disabled={create.isPending} id="wall-post-content" onChange={(event) => setContenido(event.target.value)} required value={contenido} />
+              <textarea className="form-textarea" disabled={isComposerBusy} id="wall-post-content" onChange={(event) => setContenido(event.target.value)} required value={contenido} />
             </label>
             <label className="wall-file-picker">
               <span className="wall-file-picker__label">Adjuntos <small>Máximo 5 archivos</small></span>
@@ -101,10 +147,10 @@ export function CourseWallPage() {
                 accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png"
                 aria-label="Adjuntos"
                 className="wall-file-picker__input"
-                disabled={create.isPending}
+                disabled={isComposerBusy}
                 multiple
                 onChange={(event) => {
-                  setFiles(Array.from(event.target.files ?? []).slice(0, 5));
+                  void replaceFiles(Array.from(event.target.files ?? []));
                   event.currentTarget.value = '';
                 }}
                 type="file"
@@ -120,31 +166,31 @@ export function CourseWallPage() {
             </label>
             {create.error ? <div className="error-banner" role="alert">{getApiErrorMessage(create.error, 'No pudimos publicar la comunicación.')}</div> : null}
             <footer>
-              <Button disabled={create.isPending} onClick={closeComposer} type="button" variant="secondary">Cancelar</Button>
-              <Button disabled={create.isPending} type="submit">{create.isPending ? 'Publicando…' : 'Publicar'}</Button>
+              <Button disabled={isComposerBusy} onClick={() => void closeComposer()} type="button" variant="secondary">Cancelar</Button>
+              <Button disabled={isComposerBusy} type="submit">{create.isPending ? 'Publicando…' : 'Publicar'}</Button>
             </footer>
           </form>
         </dialog>
       ) : null}
       <section className="wall-list">
         {wall.isPending ? <p className="wall-state" role="status">Cargando publicaciones del curso…</p> : null}
-        {wall.isError || !wall.data ? <div className="error-banner" role="alert">{getApiErrorMessage(wall.error, 'No pudimos cargar las publicaciones del curso.')}</div> : null}
-        {!wall.isPending && !wall.isError && wall.data?.data.length === 0 ? (
+        {wall.isError ? <div className="error-banner" role="alert">{getApiErrorMessage(wall.error, 'No pudimos cargar las publicaciones del curso.')}</div> : null}
+        {wall.isSuccess && wall.data.data.length === 0 ? (
           <div className="wall-empty-state">
             <h2>Aún no hay publicaciones en este curso.</h2>
             <p>Las nuevas comunicaciones aparecerán aquí cuando el equipo docente las publique.</p>
           </div>
         ) : null}
-        {wall.data?.data.map((post) => (
+        {wall.isSuccess ? wall.data.data.map((post) => (
           <article className="portal-card" key={post.id}>
             <span className="eyebrow">{post.fijada ? 'Fijada' : new Date(post.publicadaAt).toLocaleDateString()}</span>
             <h2 className="wall-post__title">{post.titulo}</h2>
             <LinkedWallText text={post.contenido} />
             {post.archivos.map((file) => <button className="text-link" key={file.id} onClick={() => void downloadDocument(file.id)} type="button">{file.nombreOriginal}</button>)}
-            {canWrite ? <div className="button-row"><Button disabled={pin.isPending || remove.isPending} onClick={() => pin.mutate({ id: post.id, fijada: !post.fijada })} type="button" variant="secondary">{post.fijada ? 'Desfijar' : 'Fijar'}</Button><Button disabled={pin.isPending || remove.isPending} onClick={() => remove.mutate(post.id)} type="button" variant="ghost">Retirar</Button></div> : null}
-            {pin.error || remove.error ? <div className="error-banner" role="alert">{getApiErrorMessage(pin.error ?? remove.error, 'No pudimos actualizar la publicación.')}</div> : null}
+            {canWrite ? <div className="button-row"><Button disabled={pin.isPending || remove.isPending} onClick={() => pin.mutate({ id: post.id, fijada: !post.fijada })} type="button" variant="secondary">{post.fijada ? 'Desfijar' : 'Fijar'}</Button><Button disabled={pin.isPending || remove.isPending} onClick={() => remove.mutate({ id: post.id })} type="button" variant="ghost">Retirar</Button></div> : null}
+            {postActionError?.postId === post.id ? <div className="error-banner" role="alert">{postActionError.message}</div> : null}
           </article>
-        ))}
+        )) : null}
       </section>
     </main>
   );
