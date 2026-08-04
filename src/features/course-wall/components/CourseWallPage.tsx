@@ -33,6 +33,7 @@ export function CourseWallPage() {
   const [uploadedDocumentIds, setUploadedDocumentIds] = useState<string[]>([]);
   const [isDiscardingAttachments, setIsDiscardingAttachments] = useState(false);
   const [attachmentCleanupError, setAttachmentCleanupError] = useState<string | null>(null);
+  const [pendingCleanupDocumentIds, setPendingCleanupDocumentIds] = useState<string[]>([]);
   const [postActionError, setPostActionError] = useState<PostActionError | null>(null);
   const roleCodes = profile?.roles.map((role) => role.codigo) ?? [];
   const isStudent = roleCodes.includes('ALUMNO');
@@ -49,8 +50,10 @@ export function CourseWallPage() {
     setIsDiscardingAttachments(true);
     const results = await Promise.allSettled(ids.map((id) => removeDocument(id)));
     const removedIds = ids.filter((_, index) => results[index]?.status === 'fulfilled');
+    const failedIds = ids.filter((_, index) => results[index]?.status === 'rejected');
     const failedResult = results.find((result) => result.status === 'rejected');
     setUploadedDocumentIds((current) => current.filter((id) => !removedIds.includes(id)));
+    setPendingCleanupDocumentIds((current) => [...new Set([...current.filter((id) => !removedIds.includes(id)), ...failedIds])]);
     setIsDiscardingAttachments(false);
     if (failedResult?.status === 'rejected') {
       setAttachmentCleanupError(getApiErrorMessage(failedResult.reason, 'No pudimos eliminar algunos adjuntos temporales. Intenta nuevamente.'));
@@ -60,20 +63,21 @@ export function CourseWallPage() {
     return true;
   };
   const closeComposer = async () => {
-    if (isComposerBusy) return;
+    if (isComposerLocked) return;
     const cleaned = await discardUploadedAttachments();
     if (!cleaned) return;
     composerDialogRef.current?.close();
     document.getElementById('course-wall-new-post')?.focus();
   };
   const replaceFiles = async (nextFiles: File[]) => {
-    if (isComposerBusy) return;
+    if (isComposerLocked) return;
     const cleaned = await discardUploadedAttachments();
     if (!cleaned) return;
     setFiles(nextFiles.slice(0, 5));
   };
   const create = useMutation({
     mutationFn: async () => {
+      if (hasPendingAttachmentCleanup) throw new Error('Completa la limpieza de adjuntos temporales antes de publicar.');
       const newDocumentIds: string[] = [];
       try {
         for (const file of files.slice(uploadedDocumentIds.length)) {
@@ -99,6 +103,7 @@ export function CourseWallPage() {
       setFiles([]);
       setUploadedDocumentIds([]);
       setAttachmentCleanupError(null);
+      setPendingCleanupDocumentIds([]);
       composerDialogRef.current?.close();
       document.getElementById('course-wall-new-post')?.focus();
     },
@@ -115,7 +120,9 @@ export function CourseWallPage() {
     onError: (error, variables) => setPostActionError({ postId: variables.id, message: getApiErrorMessage(error, 'No pudimos actualizar la publicación.') }),
     onSuccess: async () => { setPostActionError(null); await refresh(); },
   });
+  const hasPendingAttachmentCleanup = Boolean(attachmentCleanupError) || pendingCleanupDocumentIds.length > 0;
   const isComposerBusy = create.isPending || isDiscardingAttachments;
+  const isComposerLocked = isComposerBusy || hasPendingAttachmentCleanup;
   const canOpenComposer = canWrite && wall.isSuccess;
 
   return (
@@ -134,12 +141,12 @@ export function CourseWallPage() {
           className="wall-composer-dialog"
           onCancel={(event) => {
             event.preventDefault();
-            if (!isComposerBusy) void closeComposer();
+            if (!isComposerLocked) void closeComposer();
           }}
           onKeyDown={(event) => {
             if (event.key === 'Escape') {
               event.preventDefault();
-              if (!isComposerBusy) void closeComposer();
+              if (!isComposerLocked) void closeComposer();
             }
           }}
           ref={composerDialogRef}
@@ -152,11 +159,11 @@ export function CourseWallPage() {
             </header>
             <label className="wall-composer__field" htmlFor="wall-post-title">
               <span>Título de la publicación</span>
-              <Input disabled={isComposerBusy} id="wall-post-title" onChange={(event) => setTitulo(event.target.value)} required value={titulo} />
+              <Input disabled={isComposerLocked} id="wall-post-title" onChange={(event) => setTitulo(event.target.value)} required value={titulo} />
             </label>
             <label className="wall-composer__field" htmlFor="wall-post-content">
               <span>Contenido de la publicación</span>
-              <textarea className="form-textarea" disabled={isComposerBusy} id="wall-post-content" onChange={(event) => setContenido(event.target.value)} required value={contenido} />
+              <textarea className="form-textarea" disabled={isComposerLocked} id="wall-post-content" onChange={(event) => setContenido(event.target.value)} required value={contenido} />
             </label>
             <label className="wall-file-picker">
               <span className="wall-file-picker__label">Adjuntos <small>Máximo 5 archivos</small></span>
@@ -164,7 +171,7 @@ export function CourseWallPage() {
                 accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png"
                 aria-label="Adjuntos"
                 className="wall-file-picker__input"
-                disabled={isComposerBusy}
+                disabled={isComposerLocked}
                 multiple
                 onChange={(event) => {
                   void replaceFiles(Array.from(event.target.files ?? []));
@@ -184,9 +191,9 @@ export function CourseWallPage() {
             {create.error ? <div className="error-banner" role="alert">{getApiErrorMessage(create.error, 'No pudimos publicar la comunicación.')}</div> : null}
             {attachmentCleanupError ? <div className="error-banner" role="alert">{attachmentCleanupError}</div> : null}
             <footer>
-              <Button disabled={isComposerBusy} onClick={() => void closeComposer()} type="button" variant="secondary">Cancelar</Button>
-              {attachmentCleanupError ? <Button disabled={isComposerBusy} onClick={() => void discardUploadedAttachments()} type="button" variant="secondary">Reintentar limpieza</Button> : null}
-              <Button disabled={isComposerBusy} type="submit">{create.isPending ? 'Publicando…' : 'Publicar'}</Button>
+              <Button disabled={isComposerLocked} onClick={() => void closeComposer()} type="button" variant="secondary">Cancelar</Button>
+              {hasPendingAttachmentCleanup ? <Button disabled={isComposerBusy} onClick={() => void discardUploadedAttachments(pendingCleanupDocumentIds)} type="button" variant="secondary">Reintentar limpieza</Button> : null}
+              <Button disabled={isComposerLocked} type="submit">{create.isPending ? 'Publicando…' : 'Publicar'}</Button>
             </footer>
           </form>
         </dialog>

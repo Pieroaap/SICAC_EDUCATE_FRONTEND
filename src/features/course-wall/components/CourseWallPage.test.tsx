@@ -293,6 +293,49 @@ describe('CourseWallPage', () => {
     await waitFor(() => expect(dialog).not.toHaveAttribute('open'));
   });
 
+  it('bloquea publicar hasta completar una compensación mixta y luego publica sin IDs duplicados', async () => {
+    const user = userEvent.setup();
+    mocks.uploadCourseAttachment
+      .mockResolvedValueOnce({ id: 'document-a' })
+      .mockResolvedValueOnce({ id: 'document-b' })
+      .mockResolvedValueOnce({ id: 'document-c' })
+      .mockResolvedValueOnce({ id: 'document-d' });
+    mocks.createCoursePost
+      .mockRejectedValueOnce({ isAxiosError: true, response: { data: { message: 'No se pudo crear la publicación.' } } })
+      .mockResolvedValueOnce({ id: 'post-1' });
+    mocks.removeDocument
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce({ isAxiosError: true, response: { data: { message: 'No se pudo eliminar B.' } } })
+      .mockResolvedValueOnce(undefined);
+    renderPage();
+    await screen.findByText('Aún no hay publicaciones en este curso.');
+    const dialog = await openComposer(user);
+
+    await user.type(within(dialog).getByLabelText('Título de la publicación'), 'Ensayo general');
+    await user.type(within(dialog).getByLabelText('Contenido de la publicación'), 'Traer el texto impreso.');
+    await user.upload(within(dialog).getByLabelText('Adjuntos'), [
+      new File(['a'], 'a.pdf', { type: 'application/pdf' }),
+      new File(['b'], 'b.pdf', { type: 'application/pdf' }),
+    ]);
+    await user.click(within(dialog).getByRole('button', { name: 'Publicar' }));
+    await within(dialog).findByRole('alert');
+
+    await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }));
+    expect(await within(dialog).findByText('No se pudo eliminar B.')).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Publicar' })).toBeDisabled();
+    expect(within(dialog).getByRole('button', { name: 'Cancelar' })).toBeDisabled();
+
+    await user.click(within(dialog).getByRole('button', { name: 'Reintentar limpieza' }));
+    await waitFor(() => expect(mocks.removeDocument).toHaveBeenCalledTimes(3));
+    expect(within(dialog).getByRole('button', { name: 'Publicar' })).toBeEnabled();
+
+    await user.click(within(dialog).getByRole('button', { name: 'Publicar' }));
+    await waitFor(() => expect(mocks.createCoursePost).toHaveBeenLastCalledWith('course-1', {
+      titulo: 'Ensayo general', contenido: 'Traer el texto impreso.', documentIds: ['document-c', 'document-d'],
+    }));
+    expect(mocks.uploadCourseAttachment).toHaveBeenCalledTimes(4);
+  });
+
   it('compensa los adjuntos de una carga parcial fallida y conserva los archivos seleccionados', async () => {
     const user = userEvent.setup();
     const first = new File(['uno'], 'uno.pdf', { type: 'application/pdf' });
