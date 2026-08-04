@@ -2,6 +2,7 @@ import type { PersonDetail, RoleCode } from '../../api/types';
 import type { ProvisionableRole } from './api/peopleApi';
 
 export const accessRoleOptions: Array<{ value: ProvisionableRole; label: string }> = [
+  { value: 'ALUMNO', label: 'Alumno' },
   { value: 'ADMINISTRADOR_SISTEMA', label: 'Administrador del sistema' },
   { value: 'DIRECTOR_ACADEMICO', label: 'Director académico' },
   { value: 'GESTOR_ACADEMICO', label: 'Gestor académico' },

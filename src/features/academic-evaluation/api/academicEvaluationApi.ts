@@ -24,7 +24,12 @@ export async function getGradebook(courseId: string) {
 
 export async function saveEvaluationComponents(
   courseId: string,
-  components: Array<{ id?: string; nombre: string; porcentaje: number; orden: number }>,
+  components: Array<{
+    id?: string; nombre: string; porcentaje: number; orden: number;
+    tipo: 'tarea' | 'practica' | 'examen' | 'proyecto' | 'otro' | null;
+    fechaProgramada: string | null; fechaLimite: string | null;
+    estado: 'programada' | 'en_curso' | 'cerrada';
+  }>,
 ) {
   const { data } = await api.put<EvaluationComponent[]>(
     `/cursos-programados/${courseId}/componentes-evaluacion`,

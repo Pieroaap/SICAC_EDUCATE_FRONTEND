@@ -15,7 +15,7 @@ export function FormField({ label, htmlFor, error, children }: FormFieldProps) {
       </label>
       {children}
       {error ? (
-        <p className="text-sm text-brand" role="alert">{error}</p>
+        <p className="text-sm text-brand" id={`${htmlFor}-error`} role="alert">{error}</p>
       ) : null}
     </div>
   );

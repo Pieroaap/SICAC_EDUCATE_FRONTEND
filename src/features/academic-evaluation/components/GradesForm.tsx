@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import type { Gradebook } from '../../../api/types';
 import { Button } from '../../../components/ui/Button';
-import { gradeToLetter, gradeValueSchema, weightedAverage } from '../academicEvaluationForms';
+import { classifyGrade, gradeValueSchema, weightedAverage } from '../academicEvaluationForms';
 
 type Props = {
   gradebook: Gradebook;
@@ -61,7 +61,7 @@ export function GradesForm({ gradebook, disabled, pending, onSave }: Props) {
       <header>
         <div>
           <h2>Libro de notas</h2>
-          <p>Escala numérica de 0 a 20 con equivalencias A, B, C y D.</p>
+          <p>De 0 a 20: D desaprobado, C en proceso, B aprobado y A sobresaliente.</p>
         </div>
         <Button disabled={disabled || pending || !gradebook.students.length} type="submit">
           {pending ? 'Guardando…' : 'Guardar notas'}
@@ -117,13 +117,13 @@ export function GradesForm({ gradebook, disabled, pending, onSave }: Props) {
                           type="number"
                           {...form.register(`grades.${keyFor(student.matriculaCursoProgramadoId, component.id)}`)}
                         />
-                        <span>{value === null ? '—' : gradeToLetter(value)}</span>
+                        <span>{value === null ? '—' : classifyGrade(value).code}</span>
                       </td>
                     );
                   })}
                   <td className="gradebook-average">
                     <strong>{average?.toFixed(2) ?? 'Pendiente'}</strong>
-                    <span>{average === null ? '—' : gradeToLetter(average)}</span>
+                    <span>{average === null ? '—' : `${classifyGrade(average).code} · ${classifyGrade(average).description}`}</span>
                   </td>
                 </tr>
               );

@@ -65,7 +65,7 @@ export function MainLayout() {
                   {group.items.map((item) => (
                     <NavLink
                       className={({ isActive }) => cn('sidebar__link', isActive && 'is-active')}
-                      end={item.to === '/'}
+                      end={item.to === '/' || item.to === '/portal'}
                       key={item.to}
                       onClick={() => setMenuOpen(false)}
                       to={item.to}

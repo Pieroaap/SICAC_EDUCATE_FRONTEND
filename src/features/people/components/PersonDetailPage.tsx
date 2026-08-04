@@ -280,7 +280,12 @@ export function PersonDetailPage() {
               onFeedback={setFeedback}
               person={person}
             />
-            <PersonRolesPanel actorRoles={actorRoles} person={person} />
+            <PersonRolesPanel
+              actorPersonaId={profile?.personaId}
+              actorRoles={actorRoles}
+              onFeedback={setFeedback}
+              person={person}
+            />
 
             {teacherRole ? (
               <div className="detail-panel action-panel">

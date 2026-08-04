@@ -1,11 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, ClipboardList, Plus, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { Check, ClipboardList, Megaphone, Pencil, Plus, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { Navigate, NavLink, useParams } from 'react-router-dom';
+import { Link, Navigate, NavLink, useParams } from 'react-router-dom';
 import { getApiErrorMessage } from '../../../api/client';
-import type { CareerEnrollment, PrerequisiteAuthorization } from '../../../api/types';
+import type { CareerEnrollment, PrerequisiteAuthorization, ScheduledCourse } from '../../../api/types';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { FormField } from '../../../components/FormField';
@@ -19,11 +19,13 @@ import {
   getCurriculumPlans,
   getPlanCourses,
 } from '../../academic-structure/api/academicStructureApi';
-import { getStudents, getTeachers } from '../../profiles/api/profilesApi';
+import { getStudents } from '../../profiles/api/profilesApi';
 import {
   authorizationSchema,
+  emptyScheduleBlock,
   enrollmentSchema,
   scheduledCourseSchema,
+  type ScheduledCourseInput,
   type EnrollmentValues,
   type ScheduledCourseValues,
 } from '../academicOperationForms';
@@ -42,7 +44,15 @@ import {
   resolveAuthorization,
   createBulkEnrollments,
   getBulkEnrollmentCandidates,
+  updateScheduledCourse,
 } from '../api/academicOperationApi';
+import {
+  scheduledCourseToFormValues,
+  toCreateScheduledCoursePayload,
+  toUpdateScheduledCoursePayload,
+} from '../scheduledCourseEditing';
+import { getAllActiveTeachers } from '../loadAllActiveTeachers';
+import { ScheduledCourseForm } from './ScheduledCourseForm';
 
 const today = new Date().toISOString().slice(0, 10);
 const tabs = [
@@ -95,9 +105,12 @@ export function AcademicOperationPage() {
   );
 }
 
-function ScheduledCoursesView() {
+export function ScheduledCoursesView() {
   const queryClient = useQueryClient();
-  const [showForm, setShowForm] = useState(false);
+  const draftSessionRef = useRef(0);
+  const writePendingRef = useRef(false);
+  const [formMode, setFormMode] = useState<'create' | 'edit' | null>(null);
+  const [editingCourse, setEditingCourse] = useState<ScheduledCourse | null>(null);
   const [periodFilter, setPeriodFilter] = useState('');
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const careers = useQuery({ queryKey: ['academic', 'careers'], queryFn: getCareers });
@@ -107,69 +120,150 @@ function ScheduledCoursesView() {
   const periods = useQuery({ queryKey: ['academic', 'periods'], queryFn: () => getAcademicPeriods() });
   const teachers = useQuery({
     queryKey: ['profiles', 'teachers', 'operation'],
-    queryFn: () => getTeachers({ page: 1, pageSize: 20, estado: 'activo' }),
+    queryFn: getAllActiveTeachers,
   });
   const scheduled = useQuery({
     queryKey: ['operation', 'scheduled-courses', periodFilter],
     queryFn: () => getScheduledCourses({ periodoId: periodFilter || undefined }),
   });
-  const form = useForm<ScheduledCourseValues>({
+  const catalogLoading = careers.isPending
+    || plans.isPending
+    || planCourses.isPending
+    || courses.isPending
+    || periods.isPending
+    || teachers.isPending;
+  const catalogError = careers.isError
+    || plans.isError
+    || planCourses.isError
+    || courses.isError
+    || periods.isError
+    || teachers.isError;
+  const retryCatalogs = () => {
+    void Promise.all([
+      careers.refetch(),
+      plans.refetch(),
+      planCourses.refetch(),
+      courses.refetch(),
+      periods.refetch(),
+      teachers.refetch(),
+    ]);
+  };
+  const form = useForm<ScheduledCourseInput, unknown, ScheduledCourseValues>({
     resolver: zodResolver(scheduledCourseSchema),
     defaultValues: {
-      carreraId: '', planCurricularId: '', planCursoId: '',
-      periodoAcademicoId: '', profesorPersonaId: '',
+      carreraId: '', planCurricularId: '', planCursoId: '', periodoAcademicoId: '',
+      profesorPersonaId: '', seccion: 'ÚNICA', estado: 'activo', cupoMaximo: 20,
+      horarios: [{ ...emptyScheduleBlock }],
     },
   });
-  const careerId = useWatch({ control: form.control, name: 'carreraId' });
-  const planId = latestActivePlan(plans.data, careerId)?.id ?? '';
-  useEffect(() => {
-    form.setValue('planCurricularId', planId, { shouldValidate: Boolean(careerId) });
-    form.setValue('planCursoId', '');
-  }, [careerId, form, planId]);
-  const mutation = useMutation({
-    mutationFn: (values: ScheduledCourseValues) => createScheduledCourse({
-      planCursoId: values.planCursoId,
-      periodoAcademicoId: values.periodoAcademicoId,
-      profesorPersonaId: values.profesorPersonaId,
-    }),
-    onSuccess: async () => {
-      form.reset();
-      setShowForm(false);
+
+  const closeForm = () => {
+    draftSessionRef.current += 1;
+    createMutation.reset();
+    updateMutation.reset();
+    setFormMode(null);
+    setEditingCourse(null);
+    form.reset();
+  };
+
+  const createMutation = useMutation({
+    mutationFn: ({ values }: { values: ScheduledCourseValues; sessionId: number }) => createScheduledCourse(
+      toCreateScheduledCoursePayload(values),
+    ),
+    onSuccess: async (_data, variables) => {
+      writePendingRef.current = false;
+      if (variables.sessionId === draftSessionRef.current) closeForm();
       await queryClient.invalidateQueries({ queryKey: ['operation', 'scheduled-courses'] });
     },
+    onError: () => { writePendingRef.current = false; },
   });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, originalProfessorId, values }: {
+      id: string;
+      originalProfessorId: string;
+      sessionId: number;
+      values: ScheduledCourseValues;
+    }) => updateScheduledCourse(id, toUpdateScheduledCoursePayload(values, originalProfessorId)),
+    onSuccess: async (_data, variables) => {
+      writePendingRef.current = false;
+      if (variables.sessionId === draftSessionRef.current) closeForm();
+      await queryClient.invalidateQueries({ queryKey: ['operation', 'scheduled-courses'] });
+    },
+    onError: () => { writePendingRef.current = false; },
+  });
+
+  const writePending = createMutation.isPending || updateMutation.isPending;
+
+  const startCreate = () => {
+    if (writePendingRef.current || writePending) return;
+    draftSessionRef.current += 1;
+    createMutation.reset();
+    updateMutation.reset();
+    setEditingCourse(null);
+    setFormMode('create');
+    form.reset({
+      carreraId: '', planCurricularId: '', planCursoId: '', periodoAcademicoId: '',
+      profesorPersonaId: '', seccion: 'ÚNICA', estado: 'activo', cupoMaximo: 20,
+      horarios: [{ ...emptyScheduleBlock }],
+    });
+  };
+
+  const startEdit = (course: ScheduledCourse) => {
+    if (writePendingRef.current || writePending) return;
+    draftSessionRef.current += 1;
+    createMutation.reset();
+    updateMutation.reset();
+    setEditingCourse(course);
+    setFormMode('edit');
+    form.reset(scheduledCourseToFormValues(course));
+  };
 
   return (
     <section className="operation-section">
       <div className="operation-section__heading">
         <div><h2>Oferta del periodo</h2><p>Cada curso vincula una carrera, periodo y docente activo.</p></div>
-        <Button onClick={() => setShowForm((value) => !value)} type="button"><Plus size={16} />Programar curso</Button>
+        <Button aria-controls="scheduled-course-form" aria-expanded={formMode === 'create'} disabled={writePending} onClick={startCreate} type="button"><Plus size={16} />Programar curso</Button>
       </div>
       <label className="select-filter operation-period-filter"><span>Periodo</span><select className="form-select" onChange={(event) => setPeriodFilter(event.target.value)} value={periodFilter}><option value="">Todos</option>{periods.data?.map((period) => <option key={period.id} value={period.id}>{period.nombre}</option>)}</select></label>
-      {showForm ? (
-        <form className="operation-form" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
-          <FormField error={form.formState.errors.carreraId?.message} htmlFor="scheduled-career" label="Carrera">
-            <select className="form-select" id="scheduled-career" {...form.register('carreraId')}><option value="">Seleccionar</option>{careers.data?.filter((item) => item.estado === 'activo').map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select>
-          </FormField>
-          <FormField error={form.formState.errors.planCursoId?.message} htmlFor="scheduled-course" label="Curso">
-            <select className="form-select" disabled={!planId} id="scheduled-course" {...form.register('planCursoId')}><option value="">Seleccionar</option>{planCourses.data?.filter((item) => item.planCurricularId === planId && item.estado === 'activo').map((item) => <option key={item.id} value={item.id}>Ciclo {item.ciclo} · {courses.data?.find((course) => course.id === item.cursoId)?.nombre ?? 'Curso'}</option>)}</select>
-          </FormField>
-          <FormField error={form.formState.errors.periodoAcademicoId?.message} htmlFor="scheduled-period" label="Periodo">
-            <select className="form-select" id="scheduled-period" {...form.register('periodoAcademicoId')}><option value="">Seleccionar</option>{periods.data?.filter((item) => item.carreraId === careerId && item.estado !== 'culminado').map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select>
-          </FormField>
-          <FormField error={form.formState.errors.profesorPersonaId?.message} htmlFor="scheduled-teacher" label="Profesor">
-            <select className="form-select" id="scheduled-teacher" {...form.register('profesorPersonaId')}><option value="">Seleccionar</option>{teachers.data?.data.map((item) => <option key={item.id} value={item.id}>{item.apellidoPaterno}, {item.nombres}</option>)}</select>
-          </FormField>
-          <MutationActions error={mutation.error} pending={mutation.isPending} onCancel={() => setShowForm(false)} />
-        </form>
+      {formMode ? (
+        <ScheduledCourseForm
+          careers={careers.data ?? []}
+          catalogState={{
+            error: catalogError,
+            loading: catalogLoading,
+            onRetry: retryCatalogs,
+          }}
+          course={editingCourse}
+          courses={courses.data ?? []}
+          error={formMode === 'edit' ? updateMutation.error : createMutation.error}
+          form={form}
+          mode={formMode}
+          onCancel={closeForm}
+          onSubmit={(values) => {
+            if (writePendingRef.current || writePending) return;
+            writePendingRef.current = true;
+            const sessionId = draftSessionRef.current;
+            if (formMode === 'edit' && editingCourse) {
+              updateMutation.mutate({ id: editingCourse.id, originalProfessorId: editingCourse.profesorPersonaId, sessionId, values });
+              return;
+            }
+            createMutation.mutate({ sessionId, values });
+          }}
+          pending={writePending}
+          periods={periods.data ?? []}
+          planCourses={planCourses.data ?? []}
+          plans={plans.data ?? []}
+          teachers={teachers.data ?? []}
+        />
       ) : null}
       <DataTable
-        columns={['Curso', 'Carrera y plan', 'Periodo', 'Docente', 'Estado', 'Alumnos']}
+        columns={['Curso', 'Carrera y plan', 'Periodo', 'Horario y cupo', 'Docente', 'Estado', 'Acciones']}
         empty="No hay cursos programados."
         error={scheduled.isError}
         loading={scheduled.isPending}
       >
-        {scheduled.data?.map((row) => <tr key={row.id}><td><strong>{row.cursoNombre}</strong><span>Ciclo {row.ciclo}</span></td><td>{row.carreraNombre}<small>{row.planNombre}</small></td><td>{row.periodoNombre}</td><td>{row.profesorApellidoPaterno}, {row.profesorNombres}</td><td><StatusBadge active={row.estado === 'activo'} /></td><td><Button onClick={() => setSelectedCourseId(row.id)} type="button" variant="ghost">Gestionar</Button></td></tr>)}
+        {scheduled.data?.map((row) => <tr key={row.id}><td><strong>{row.cursoNombre}</strong><span>Ciclo {row.ciclo}</span></td><td>{row.carreraNombre}<small>{row.planNombre}</small></td><td>{row.periodoNombre}</td><td>{row.horarios.map((item) => `${item.dia} ${item.horaInicio.slice(0, 5)}–${item.horaFin.slice(0, 5)}`).join(', ') || 'Sin horario'}<small>{row.cupoMaximo ? `${row.cupoMaximo} vacantes` : 'Sin límite'}</small></td><td>{row.profesorApellidoPaterno}, {row.profesorNombres}</td><td><StatusBadge active={row.estado === 'activo'} /></td><td><div className="button-row"><Button aria-controls="scheduled-course-form" aria-expanded={formMode === 'edit' && editingCourse?.id === row.id} disabled={writePending} onClick={() => startEdit(row)} type="button" variant="secondary"><Pencil size={15} /> Editar</Button><Button asChild variant="secondary"><Link to={`/muro/${row.id}`}><Megaphone size={15} /> Muro</Link></Button><Button onClick={() => setSelectedCourseId(row.id)} type="button" variant="ghost">Alumnos</Button></div></td></tr>)}
       </DataTable>
       {selectedCourseId ? <CourseRoster courseId={selectedCourseId} onClose={() => setSelectedCourseId(null)} /> : null}
     </section>

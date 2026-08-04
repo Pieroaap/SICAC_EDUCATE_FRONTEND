@@ -4,6 +4,7 @@ import { MainLayout } from '../layouts/MainLayout';
 import { ForbiddenPage } from './ForbiddenPage';
 import { ProtectedRoute } from './ProtectedRoute';
 import { RequireRole } from './RequireRole';
+import { useAuth } from '../features/auth/AuthProvider';
 
 const LoginPage = lazy(() => import('../features/auth/components/LoginPage')
   .then((module) => ({ default: module.LoginPage })));
@@ -37,6 +38,18 @@ const ReactivationRequestsPage = lazy(() => import('../features/academic-attenda
   .then((module) => ({ default: module.ReactivationRequestsPage })));
 const WorkshopsPage = lazy(() => import('../features/workshops/components/WorkshopsPage')
   .then((module) => ({ default: module.WorkshopsPage })));
+const DocumentsPage = lazy(() => import('../features/documents/components/DocumentsPage').then((module) => ({ default: module.DocumentsPage })));
+const CourseWallPage = lazy(() => import('../features/course-wall/components/CourseWallPage').then((module) => ({ default: module.CourseWallPage })));
+const StudentPortalPage = lazy(() => import('../features/student-portal/components/StudentPortalPage').then((module) => ({ default: module.StudentPortalPage })));
+const StudentCoursePage = lazy(() => import('../features/student-portal/components/StudentCoursePage').then((module) => ({ default: module.StudentCoursePage })));
+const StudentHistoryPage = lazy(() => import('../features/student-portal/components/StudentHistoryPage').then((module) => ({ default: module.StudentHistoryPage })));
+const PromotionPage = lazy(() => import('../features/promotion/components/PromotionPage').then((module) => ({ default: module.PromotionPage })));
+
+function HomePage() {
+  const { profile } = useAuth();
+  const roles = profile?.roles.map((role) => role.codigo) ?? [];
+  return roles.length === 1 && roles[0] === 'ALUMNO' ? <Navigate replace to="/portal" /> : <DashboardPage />;
+}
 
 export function App() {
   return (
@@ -58,7 +71,13 @@ export function App() {
             </ProtectedRoute>
           )}
         >
-          <Route element={<DashboardPage />} index />
+          <Route element={<HomePage />} index />
+          <Route element={<RequireRole allowed={['ALUMNO']}><StudentPortalPage /></RequireRole>} path="portal" />
+          <Route element={<RequireRole allowed={['ALUMNO']}><StudentCoursePage /></RequireRole>} path="portal/cursos/:courseId" />
+          <Route element={<RequireRole allowed={['ALUMNO']}><StudentHistoryPage /></RequireRole>} path="portal/historial" />
+          <Route element={<RequireRole allowed={['ADMINISTRADOR_SISTEMA', 'DIRECTOR_ACADEMICO', 'GESTOR_ACADEMICO']}><DocumentsPage /></RequireRole>} path="documentos" />
+          <Route element={<RequireRole allowed={['ADMINISTRADOR_SISTEMA', 'DIRECTOR_ACADEMICO', 'GESTOR_ACADEMICO', 'PROFESOR', 'ALUMNO']}><CourseWallPage /></RequireRole>} path="muro/:courseId" />
+          <Route element={<RequireRole allowed={['ADMINISTRADOR_SISTEMA', 'DIRECTOR_ACADEMICO', 'GESTOR_ACADEMICO']}><PromotionPage /></RequireRole>} path="promociones" />
           <Route
             element={(
               <RequireRole allowed={['ADMINISTRADOR_SISTEMA', 'DIRECTOR_ACADEMICO', 'GESTOR_ACADEMICO']}>

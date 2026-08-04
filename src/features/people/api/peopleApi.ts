@@ -64,7 +64,7 @@ export async function updatePerson(personId: string, input: UpdatePersonInput) {
   return data;
 }
 
-export type ProvisionableRole = Exclude<RoleCode, 'ALUMNO'>;
+export type ProvisionableRole = RoleCode;
 
 export async function enablePersonAccess(personId: string, role: ProvisionableRole) {
   const { data } = await api.post(`/personas/${personId}/acceso`, { role });
@@ -121,5 +121,25 @@ export async function assignPersonRole(
   },
 ) {
   const { data } = await api.post(`/personas/${personId}/roles`, input);
+  return data;
+}
+
+export async function deactivatePersonRole(personId: string, role: RoleCode) {
+  const { data } = await api.patch(`/personas/${personId}/roles/${role}`, { estado: 'inactivo' });
+  return data;
+}
+
+export async function changePersonRole(
+  personId: string,
+  input: {
+    fromRole: RoleCode;
+    toRole: RoleCode;
+    student?: {
+      carreraId: string; periodoInicioId: string; estado: 'activo';
+      beneficio: 'normal'; tipoBeneficio: 'regular';
+    };
+  },
+) {
+  const { data } = await api.post(`/personas/${personId}/roles/cambiar`, input);
   return data;
 }

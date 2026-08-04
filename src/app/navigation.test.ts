@@ -24,6 +24,8 @@ describe('getNavigationGroups', () => {
       'Matrículas e historial',
       'Excepciones',
       'Talleres',
+      'Documentos',
+      'Promoción',
       'Evaluación académica',
       'Asistencia',
       'Reactivaciones',

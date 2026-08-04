@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { BookOpenCheck, ChevronRight } from 'lucide-react';
+import { BookOpenCheck, ChevronRight, Megaphone } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getEvaluationCourses } from '../api/academicEvaluationApi';
 
@@ -33,20 +33,23 @@ export function EvaluationCoursesPage() {
 
       <section className="evaluation-course-list" aria-label="Cursos disponibles">
         {courses.data?.data.map((course) => (
-          <Link key={course.id} to={`/evaluacion/cursos/${course.id}`}>
-            <div className="evaluation-course-list__code">
-              <span>{course.cursoCodigo}</span>
-              <strong>{course.cursoNombre}</strong>
-            </div>
-            <div>
-              <span>{course.carreraNombre}</span>
-              <small>{course.periodoNombre} · Ciclo {course.ciclo}</small>
-            </div>
-            <span className={`evaluation-state is-${course.actaEstado}`}>
-              {course.actaEstado === 'publicada' ? 'Acta publicada' : 'En edición'}
-            </span>
-            <ChevronRight aria-hidden="true" size={18} />
-          </Link>
+          <article className="evaluation-course-entry" key={course.id}>
+            <Link className="evaluation-course-main" to={`/evaluacion/cursos/${course.id}`}>
+              <div className="evaluation-course-list__code">
+                <span>{course.cursoCodigo}</span>
+                <strong>{course.cursoNombre}</strong>
+              </div>
+              <div>
+                <span>{course.carreraNombre}</span>
+                <small>{course.periodoNombre} · Ciclo {course.ciclo}</small>
+              </div>
+              <span className={`evaluation-state is-${course.actaEstado}`}>
+                {course.actaEstado === 'publicada' ? 'Acta publicada' : 'En edición'}
+              </span>
+              <ChevronRight aria-hidden="true" size={18} />
+            </Link>
+            <Link className="evaluation-course-wall" to={`/muro/${course.id}`}><Megaphone size={17} /> Muro</Link>
+          </article>
         ))}
       </section>
     </main>
