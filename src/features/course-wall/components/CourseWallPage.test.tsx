@@ -32,7 +32,7 @@ import { CourseWallPage } from './CourseWallPage';
 afterEach(cleanup);
 
 const wall = {
-  course: { id: 'course-1', code: 'ACT-101', name: 'Actuación I' },
+  course: { id: 'course-1', code: 'ACT-101', name: 'Actuación I', canWrite: true },
   data: [],
   pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 },
 };
@@ -96,10 +96,39 @@ describe('CourseWallPage', () => {
 
   it('no muestra la acción de creación al alumno', async () => {
     mocks.useAuth.mockReturnValue({ profile: { roles: [{ codigo: 'ALUMNO' }] } });
+    mocks.getCourseWall.mockResolvedValue({ ...wall, course: { ...wall.course, canWrite: false } });
     renderPage();
 
     await screen.findByText('Aún no hay publicaciones en este curso.');
     expect(screen.queryByRole('button', { name: 'Nueva publicación' })).not.toBeInTheDocument();
+  });
+
+  it('oculta creación y moderación al multirrol alumno-profesor sin capacidad efectiva de escritura', async () => {
+    mocks.useAuth.mockReturnValue({ profile: { roles: [{ codigo: 'ALUMNO' }, { codigo: 'PROFESOR' }] } });
+    mocks.getCourseWall.mockResolvedValue({
+      ...wall,
+      course: { ...wall.course, canWrite: false },
+      data: [{ id: 'post-1', titulo: 'Lectura', contenido: 'Contenido', fijada: false, publicadaAt: '2026-08-03T12:00:00.000Z', archivos: [] }],
+    });
+    renderPage();
+
+    expect(await screen.findByRole('heading', { name: 'Lectura' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Nueva publicación' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Fijar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Retirar' })).not.toBeInTheDocument();
+  });
+
+  it('habilita creación y moderación al profesor asignado con canWrite verdadero', async () => {
+    mocks.getCourseWall.mockResolvedValue({
+      ...wall,
+      course: { ...wall.course, canWrite: true },
+      data: [{ id: 'post-1', titulo: 'Lectura', contenido: 'Contenido', fijada: false, publicadaAt: '2026-08-03T12:00:00.000Z', archivos: [] }],
+    });
+    renderPage();
+
+    expect(await screen.findByRole('button', { name: 'Nueva publicación' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Fijar' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retirar' })).toBeInTheDocument();
   });
 
   it('mantiene loading como único estado y no habilita composición antes de una lectura exitosa', async () => {

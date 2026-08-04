@@ -38,12 +38,12 @@ export function CourseWallPage() {
   const roleCodes = profile?.roles.map((role) => role.codigo) ?? [];
   const isStudent = roleCodes.includes('ALUMNO');
   const isTeacher = roleCodes.includes('PROFESOR') && !isStudent;
-  const canWrite = roleCodes.some((role) => role !== 'ALUMNO');
   const backTo = isStudent
     ? `/portal/cursos/${courseId}`
     : isTeacher ? `/evaluacion/cursos/${courseId}` : '/operacion/cursos-programados';
   const backLabel = isStudent ? 'Volver al curso' : isTeacher ? 'Volver a evaluación' : 'Volver a cursos programados';
   const wall = useQuery({ queryKey: ['course-wall', courseId], queryFn: () => getCourseWall(courseId), enabled: Boolean(courseId) });
+  const canWrite = wall.data?.course.canWrite ?? false;
   const refresh = () => client.invalidateQueries({ queryKey: ['course-wall', courseId] });
   const discardUploadedAttachments = async (ids = uploadedDocumentIds) => {
     if (!ids.length) return true;
