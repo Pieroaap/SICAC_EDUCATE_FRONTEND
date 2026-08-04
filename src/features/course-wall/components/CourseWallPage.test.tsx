@@ -251,6 +251,7 @@ describe('CourseWallPage', () => {
 
   it('limpia, cierra e invalida solo la query del muro al publicar correctamente', async () => {
     const user = userEvent.setup();
+    const file = new File(['contenido'], 'guion.pdf', { type: 'application/pdf' });
     mocks.uploadCourseAttachment.mockResolvedValue({ id: 'document-1' });
     mocks.createCoursePost.mockResolvedValue({ id: 'post-1' });
     const { invalidateQueries } = renderPage();
@@ -259,13 +260,23 @@ describe('CourseWallPage', () => {
 
     await user.type(within(dialog).getByLabelText('Título de la publicación'), 'Ensayo general');
     await user.type(within(dialog).getByLabelText('Contenido de la publicación'), 'Traer el texto impreso.');
+    await user.upload(within(dialog).getByLabelText('Adjuntos'), file);
     await user.click(within(dialog).getByRole('button', { name: 'Publicar' }));
 
     await waitFor(() => expect(mocks.createCoursePost).toHaveBeenCalledWith('course-1', {
-      titulo: 'Ensayo general', contenido: 'Traer el texto impreso.', documentIds: [],
+      titulo: 'Ensayo general', contenido: 'Traer el texto impreso.', documentIds: ['document-1'],
     }));
     await waitFor(() => expect(dialog).not.toHaveAttribute('open'));
+
+    await openComposer(user);
     expect(within(dialog).getByLabelText('Título de la publicación')).toHaveValue('');
+    expect(within(dialog).getByLabelText('Contenido de la publicación')).toHaveValue('');
+    expect(within(dialog).getByText('Ningún archivo seleccionado')).toBeInTheDocument();
+    expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }));
+    await waitFor(() => expect(dialog).not.toHaveAttribute('open'));
+    expect(mocks.removeDocument).not.toHaveBeenCalled();
     expect(invalidateQueries).toHaveBeenCalledTimes(1);
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['course-wall', 'course-1'] });
   });
