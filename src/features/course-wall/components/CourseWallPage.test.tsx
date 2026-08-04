@@ -136,6 +136,26 @@ describe('CourseWallPage', () => {
     await waitFor(() => expect(dialog).not.toHaveAttribute('open'));
   });
 
+  it('mantiene el modal abierto al pulsar Escape durante la publicación', async () => {
+    let resolveCreate!: (value: { id: string }) => void;
+    const user = userEvent.setup();
+    mocks.createCoursePost.mockReturnValue(new Promise((resolve) => { resolveCreate = resolve; }));
+    renderPage();
+    await screen.findByText('Aún no hay publicaciones en este curso.');
+    const dialog = await openComposer(user);
+
+    await user.type(within(dialog).getByLabelText('Título de la publicación'), 'Ensayo general');
+    await user.type(within(dialog).getByLabelText('Contenido de la publicación'), 'Traer el texto impreso.');
+    await user.click(within(dialog).getByRole('button', { name: 'Publicar' }));
+    expect(await within(dialog).findByRole('button', { name: 'Publicando…' })).toBeDisabled();
+
+    fireEvent.keyDown(dialog, { key: 'Escape' });
+
+    expect(dialog).toHaveAttribute('open');
+    expect(mocks.removeDocument).not.toHaveBeenCalled();
+    resolveCreate({ id: 'post-1' });
+  });
+
   it('muestra el error real del adjunto y conserva el borrador para reintentar', async () => {
     const user = userEvent.setup();
     mocks.uploadCourseAttachment.mockRejectedValue({ isAxiosError: true, response: { data: { message: 'El archivo excede el tamaño permitido.' } } });
@@ -240,6 +260,37 @@ describe('CourseWallPage', () => {
 
     await waitFor(() => expect(mocks.removeDocument).toHaveBeenCalledWith('document-1'));
     expect(within(dialog).getByText('1 archivo seleccionado')).toBeInTheDocument();
+  });
+
+  it('conserva adjuntos temporales tras un borrado fallido y permite reintentar sin reupload', async () => {
+    const user = userEvent.setup();
+    mocks.uploadCourseAttachment.mockResolvedValue({ id: 'document-1' });
+    mocks.createCoursePost.mockRejectedValue({ isAxiosError: true, response: { data: { message: 'No se pudo crear la publicación.' } } });
+    mocks.removeDocument
+      .mockRejectedValueOnce({ isAxiosError: true, response: { data: { message: 'No se pudo eliminar el adjunto temporal.' } } })
+      .mockResolvedValueOnce(undefined);
+    renderPage();
+    await screen.findByText('Aún no hay publicaciones en este curso.');
+    const dialog = await openComposer(user);
+
+    await user.type(within(dialog).getByLabelText('Título de la publicación'), 'Ensayo general');
+    await user.type(within(dialog).getByLabelText('Contenido de la publicación'), 'Traer el texto impreso.');
+    await user.upload(within(dialog).getByLabelText('Adjuntos'), new File(['uno'], 'uno.pdf', { type: 'application/pdf' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Publicar' }));
+    await within(dialog).findByRole('alert');
+
+    await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }));
+    expect(await within(dialog).findByText('No se pudo eliminar el adjunto temporal.')).toBeInTheDocument();
+    expect(dialog).toHaveAttribute('open');
+    expect(within(dialog).getByText('1 archivo seleccionado')).toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole('button', { name: 'Reintentar limpieza' }));
+    await waitFor(() => expect(mocks.removeDocument).toHaveBeenCalledTimes(2));
+    expect(within(dialog).queryByRole('button', { name: 'Reintentar limpieza' })).not.toBeInTheDocument();
+    expect(mocks.uploadCourseAttachment).toHaveBeenCalledTimes(1);
+
+    await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }));
+    await waitFor(() => expect(dialog).not.toHaveAttribute('open'));
   });
 
   it('compensa los adjuntos de una carga parcial fallida y conserva los archivos seleccionados', async () => {

@@ -32,6 +32,7 @@ export function CourseWallPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [uploadedDocumentIds, setUploadedDocumentIds] = useState<string[]>([]);
   const [isDiscardingAttachments, setIsDiscardingAttachments] = useState(false);
+  const [attachmentCleanupError, setAttachmentCleanupError] = useState<string | null>(null);
   const [postActionError, setPostActionError] = useState<PostActionError | null>(null);
   const roleCodes = profile?.roles.map((role) => role.codigo) ?? [];
   const isStudent = roleCodes.includes('ALUMNO');
@@ -44,19 +45,31 @@ export function CourseWallPage() {
   const wall = useQuery({ queryKey: ['course-wall', courseId], queryFn: () => getCourseWall(courseId), enabled: Boolean(courseId) });
   const refresh = () => client.invalidateQueries({ queryKey: ['course-wall', courseId] });
   const discardUploadedAttachments = async (ids = uploadedDocumentIds) => {
-    if (!ids.length) return;
+    if (!ids.length) return true;
     setIsDiscardingAttachments(true);
-    await Promise.allSettled(ids.map((id) => removeDocument(id)));
-    setUploadedDocumentIds((current) => current.filter((id) => !ids.includes(id)));
+    const results = await Promise.allSettled(ids.map((id) => removeDocument(id)));
+    const removedIds = ids.filter((_, index) => results[index]?.status === 'fulfilled');
+    const failedResult = results.find((result) => result.status === 'rejected');
+    setUploadedDocumentIds((current) => current.filter((id) => !removedIds.includes(id)));
     setIsDiscardingAttachments(false);
+    if (failedResult?.status === 'rejected') {
+      setAttachmentCleanupError(getApiErrorMessage(failedResult.reason, 'No pudimos eliminar algunos adjuntos temporales. Intenta nuevamente.'));
+      return false;
+    }
+    setAttachmentCleanupError(null);
+    return true;
   };
   const closeComposer = async () => {
-    await discardUploadedAttachments();
+    if (isComposerBusy) return;
+    const cleaned = await discardUploadedAttachments();
+    if (!cleaned) return;
     composerDialogRef.current?.close();
     document.getElementById('course-wall-new-post')?.focus();
   };
   const replaceFiles = async (nextFiles: File[]) => {
-    await discardUploadedAttachments();
+    if (isComposerBusy) return;
+    const cleaned = await discardUploadedAttachments();
+    if (!cleaned) return;
     setFiles(nextFiles.slice(0, 5));
   };
   const create = useMutation({
@@ -85,6 +98,7 @@ export function CourseWallPage() {
       setContenido('');
       setFiles([]);
       setUploadedDocumentIds([]);
+      setAttachmentCleanupError(null);
       composerDialogRef.current?.close();
       document.getElementById('course-wall-new-post')?.focus();
     },
@@ -118,11 +132,14 @@ export function CourseWallPage() {
         <dialog
           aria-labelledby="wall-composer-title"
           className="wall-composer-dialog"
-          onCancel={(event) => { event.preventDefault(); void closeComposer(); }}
+          onCancel={(event) => {
+            event.preventDefault();
+            if (!isComposerBusy) void closeComposer();
+          }}
           onKeyDown={(event) => {
             if (event.key === 'Escape') {
               event.preventDefault();
-              void closeComposer();
+              if (!isComposerBusy) void closeComposer();
             }
           }}
           ref={composerDialogRef}
@@ -165,8 +182,10 @@ export function CourseWallPage() {
               </span>
             </label>
             {create.error ? <div className="error-banner" role="alert">{getApiErrorMessage(create.error, 'No pudimos publicar la comunicación.')}</div> : null}
+            {attachmentCleanupError ? <div className="error-banner" role="alert">{attachmentCleanupError}</div> : null}
             <footer>
               <Button disabled={isComposerBusy} onClick={() => void closeComposer()} type="button" variant="secondary">Cancelar</Button>
+              {attachmentCleanupError ? <Button disabled={isComposerBusy} onClick={() => void discardUploadedAttachments()} type="button" variant="secondary">Reintentar limpieza</Button> : null}
               <Button disabled={isComposerBusy} type="submit">{create.isPending ? 'Publicando…' : 'Publicar'}</Button>
             </footer>
           </form>
