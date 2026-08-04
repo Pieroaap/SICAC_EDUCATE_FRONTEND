@@ -1,6 +1,10 @@
 @import "./features/student-portal/student-portal.css";
 @import "tailwindcss";
 
+dialog[open] {
+  margin: auto;
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
