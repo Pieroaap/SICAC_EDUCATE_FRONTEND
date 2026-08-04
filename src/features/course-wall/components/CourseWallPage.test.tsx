@@ -94,6 +94,24 @@ describe('CourseWallPage', () => {
     expect(screen.getByRole('button', { name: 'Nueva publicación' })).toHaveFocus();
   });
 
+  it('reinicia el borrador y los archivos al cancelar el compositor', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('Aún no hay publicaciones en este curso.');
+    const dialog = await openComposer(user);
+
+    await user.type(within(dialog).getByLabelText('Título de la publicación'), 'Ensayo general');
+    await user.type(within(dialog).getByLabelText('Contenido de la publicación'), 'Traer el texto impreso.');
+    await user.upload(within(dialog).getByLabelText('Adjuntos'), new File(['contenido'], 'guion.pdf', { type: 'application/pdf' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }));
+    await waitFor(() => expect(dialog).not.toHaveAttribute('open'));
+
+    await openComposer(user);
+    expect(within(dialog).getByLabelText('Título de la publicación')).toHaveValue('');
+    expect(within(dialog).getByLabelText('Contenido de la publicación')).toHaveValue('');
+    expect(within(dialog).getByText('Ningún archivo seleccionado')).toBeInTheDocument();
+  });
+
   it('no muestra la acción de creación al alumno', async () => {
     mocks.useAuth.mockReturnValue({ profile: { roles: [{ codigo: 'ALUMNO' }] } });
     mocks.getCourseWall.mockResolvedValue({ ...wall, course: { ...wall.course, canWrite: false } });
@@ -154,15 +172,21 @@ describe('CourseWallPage', () => {
     expect(screen.queryByRole('button', { name: 'Nueva publicación' })).not.toBeInTheDocument();
   });
 
-  it('cierra el modal al pulsar Escape', async () => {
+  it('reinicia el borrador al cerrar el modal con Escape', async () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText('Aún no hay publicaciones en este curso.');
     const dialog = await openComposer(user);
 
+    await user.type(within(dialog).getByLabelText('Título de la publicación'), 'Ensayo general');
+    await user.type(within(dialog).getByLabelText('Contenido de la publicación'), 'Traer el texto impreso.');
+
     fireEvent.keyDown(dialog, { key: 'Escape' });
 
     await waitFor(() => expect(dialog).not.toHaveAttribute('open'));
+    await openComposer(user);
+    expect(within(dialog).getByLabelText('Título de la publicación')).toHaveValue('');
+    expect(within(dialog).getByLabelText('Contenido de la publicación')).toHaveValue('');
   });
 
   it('mantiene el modal abierto al pulsar Escape durante la publicación', async () => {
@@ -203,6 +227,26 @@ describe('CourseWallPage', () => {
     expect(within(dialog).getByLabelText('Contenido de la publicación')).toHaveValue('Traer el texto impreso.');
     expect(within(dialog).getByText('1 archivo seleccionado')).toBeInTheDocument();
     expect(dialog).toHaveAttribute('open');
+  });
+
+  it('descarta el error de publicación y el borrador al cerrar y reabrir el compositor', async () => {
+    const user = userEvent.setup();
+    mocks.createCoursePost.mockRejectedValue({ isAxiosError: true, response: { data: { message: 'No se pudo crear la publicación.' } } });
+    renderPage();
+    await screen.findByText('Aún no hay publicaciones en este curso.');
+    const dialog = await openComposer(user);
+
+    await user.type(within(dialog).getByLabelText('Título de la publicación'), 'Ensayo general');
+    await user.type(within(dialog).getByLabelText('Contenido de la publicación'), 'Traer el texto impreso.');
+    await user.click(within(dialog).getByRole('button', { name: 'Publicar' }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('No se pudo crear la publicación.');
+
+    await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }));
+    await waitFor(() => expect(dialog).not.toHaveAttribute('open'));
+    await openComposer(user);
+    expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument();
+    expect(within(dialog).getByLabelText('Título de la publicación')).toHaveValue('');
+    expect(within(dialog).getByLabelText('Contenido de la publicación')).toHaveValue('');
   });
 
   it('limpia, cierra e invalida solo la query del muro al publicar correctamente', async () => {

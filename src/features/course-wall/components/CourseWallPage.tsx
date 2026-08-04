@@ -62,13 +62,6 @@ export function CourseWallPage() {
     setAttachmentCleanupError(null);
     return true;
   };
-  const closeComposer = async () => {
-    if (isComposerLocked) return;
-    const cleaned = await discardUploadedAttachments();
-    if (!cleaned) return;
-    composerDialogRef.current?.close();
-    document.getElementById('course-wall-new-post')?.focus();
-  };
   const replaceFiles = async (nextFiles: File[]) => {
     if (isComposerLocked) return;
     const cleaned = await discardUploadedAttachments();
@@ -98,16 +91,28 @@ export function CourseWallPage() {
     },
     onSuccess: async () => {
       await refresh();
-      setTitulo('');
-      setContenido('');
-      setFiles([]);
-      setUploadedDocumentIds([]);
-      setAttachmentCleanupError(null);
-      setPendingCleanupDocumentIds([]);
+      resetComposerDraft();
       composerDialogRef.current?.close();
       document.getElementById('course-wall-new-post')?.focus();
     },
   });
+  const resetComposerDraft = () => {
+    setTitulo('');
+    setContenido('');
+    setFiles([]);
+    setUploadedDocumentIds([]);
+    setAttachmentCleanupError(null);
+    setPendingCleanupDocumentIds([]);
+    create.reset();
+  };
+  const closeComposer = async () => {
+    if (isComposerLocked) return;
+    const cleaned = await discardUploadedAttachments();
+    if (!cleaned) return;
+    resetComposerDraft();
+    composerDialogRef.current?.close();
+    document.getElementById('course-wall-new-post')?.focus();
+  };
   const pin = useMutation({
     mutationFn: ({ id, fijada }: { id: string; fijada: boolean }) => updateCoursePost(id, { fijada }),
     onMutate: () => setPostActionError(null),
