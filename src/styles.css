@@ -26,7 +26,19 @@
 .portal-card h2, .portal-card h3, .portal-card p { margin: 0; }
 .portal-count { align-self: center; padding: .65rem .85rem; border-radius: 999px; background: #f8e9ec; color: #9b1830; }
 .wall-list { max-width: 880px; }
-.wall-content { white-space: pre-wrap; overflow-wrap: anywhere; }
+.wall-content { text-align: justify; white-space: pre-wrap; overflow-wrap: anywhere; text-wrap: pretty; }
+.wall-post__title { font-weight: 800; letter-spacing: -.02em; }
+.wall-empty-state, .wall-state { min-height: 92px; display: grid; align-content: center; gap: .35rem; padding: 1.25rem; border: 1px solid var(--line); border-radius: 12px; background: var(--surface, #fff); }
+.wall-empty-state h2, .wall-empty-state p, .wall-state { margin: 0; }
+.wall-empty-state p, .wall-state { color: var(--ink-secondary); }
+.wall-composer-dialog { width: min(100% - 2rem, 680px); max-height: min(100% - 2rem, 760px); padding: 0; border: 1px solid var(--line); border-radius: 16px; background: var(--surface, #fff); box-shadow: 0 20px 60px rgba(17,24,39,.18); }
+.wall-composer-dialog::backdrop { background: rgba(17,24,39,.42); }
+.wall-composer { display: grid; gap: 1rem; padding: clamp(1.25rem, 4vw, 2rem); }
+.wall-composer header, .wall-composer__field { display: grid; gap: .4rem; }
+.wall-composer h2, .wall-composer p { margin: 0; }
+.wall-composer header > p:last-child { color: var(--ink-secondary); text-wrap: pretty; }
+.wall-composer__field > span { color: var(--ink); font-size: .82rem; font-weight: 750; }
+.wall-composer footer { display: flex; justify-content: flex-end; gap: .75rem; }
 .wall-content a { color: #c41e3a; font-weight: 750; text-underline-offset: 3px; }
 .wall-content a:hover { color: #a3162e; }
 .wall-file-picker { display: grid; gap: .5rem; color: var(--ink-secondary); cursor: pointer; }
