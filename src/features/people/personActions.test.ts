@@ -6,6 +6,7 @@ import {
   canResetPassword,
   canUpdateStudentProfile,
   hasActiveRole,
+  uniquePersonRoles,
 } from './personActions';
 
 function personWithRoles(roles: RoleCode[]): PersonDetail {
@@ -58,5 +59,15 @@ describe('personActions', () => {
   it('detecta roles activos sin fecha fin', () => {
     expect(hasActiveRole(personWithRoles(['ALUMNO']), 'ALUMNO')).toBe(true);
     expect(hasActiveRole(personWithRoles(['PROFESOR']), 'ALUMNO')).toBe(false);
+  });
+
+  it('muestra una sola vez cada rol y prioriza su asignación activa', () => {
+    expect(uniquePersonRoles([
+      { codigo: 'ALUMNO', nombre: 'Alumno', estado: 'inactivo' },
+      { codigo: 'ALUMNO', nombre: 'Alumno', estado: 'activo' },
+      { codigo: 'ALUMNO', nombre: 'Alumno', estado: 'activo' },
+    ])).toEqual([
+      { codigo: 'ALUMNO', nombre: 'Alumno', estado: 'activo' },
+    ]);
   });
 });

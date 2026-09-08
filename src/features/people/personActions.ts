@@ -1,4 +1,4 @@
-import type { PersonDetail, RoleCode } from '../../api/types';
+import type { PersonDetail, PersonListItem, RoleCode } from '../../api/types';
 import type { ProvisionableRole } from './api/peopleApi';
 
 export const accessRoleOptions: Array<{ value: ProvisionableRole; label: string }> = [
@@ -15,6 +15,15 @@ export function hasActiveRole(person: PersonDetail, role: RoleCode) {
     && assignment.estado === 'activo'
     && !assignment.fechaFin
   ));
+}
+
+export function uniquePersonRoles(roles: PersonListItem['roles']) {
+  const byCode = new Map<RoleCode, PersonListItem['roles'][number]>();
+  for (const role of roles) {
+    const current = byCode.get(role.codigo);
+    if (!current || role.estado === 'activo') byCode.set(role.codigo, role);
+  }
+  return [...byCode.values()];
 }
 
 export function canProvisionAccess(actorRoles: RoleCode[]) {

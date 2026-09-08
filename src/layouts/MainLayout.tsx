@@ -7,6 +7,7 @@ import { useTheme } from '../app/ThemeProvider';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../features/auth/AuthProvider';
 import { cn } from '../lib/cn';
+import { PrivacyGate } from '../features/institutional/components/PrivacyGate';
 
 export function MainLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -119,7 +120,7 @@ export function MainLayout() {
             <p>Sistema Integral del Club de Arte & Cultura</p>
           </div>
         </header>
-        <Outlet />
+        <PrivacyGate><Outlet /></PrivacyGate>
       </div>
     </div>
   );

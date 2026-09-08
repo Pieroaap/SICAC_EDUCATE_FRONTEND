@@ -27,6 +27,9 @@ const navigation: NavigationGroup[] = [
       { label: 'Panel general', to: '/', allowed: [...identityManagers, 'PROFESOR'] },
       { label: 'Mi portal', to: '/portal', allowed: ['ALUMNO'] },
       { label: 'Mi historial', to: '/portal/historial', allowed: ['ALUMNO'] },
+      { label: 'Noticias', to: '/noticias' },
+      { label: 'Documentos institucionales', to: '/biblioteca' },
+      { label: 'Privacidad y consentimientos', to: '/privacidad', allowed: ['ADMINISTRADOR_SISTEMA'] },
     ],
   },
   {

@@ -39,6 +39,9 @@ const ReactivationRequestsPage = lazy(() => import('../features/academic-attenda
 const WorkshopsPage = lazy(() => import('../features/workshops/components/WorkshopsPage')
   .then((module) => ({ default: module.WorkshopsPage })));
 const DocumentsPage = lazy(() => import('../features/documents/components/DocumentsPage').then((module) => ({ default: module.DocumentsPage })));
+const NewsPage = lazy(() => import('../features/institutional/components/NewsPage').then((module) => ({ default: module.NewsPage })));
+const LibraryPage = lazy(() => import('../features/institutional/components/LibraryPage').then((module) => ({ default: module.LibraryPage })));
+const PrivacyAdminPage = lazy(() => import('../features/institutional/components/PrivacyAdminPage').then((module) => ({ default: module.PrivacyAdminPage })));
 const CourseWallPage = lazy(() => import('../features/course-wall/components/CourseWallPage').then((module) => ({ default: module.CourseWallPage })));
 const StudentPortalPage = lazy(() => import('../features/student-portal/components/StudentPortalPage').then((module) => ({ default: module.StudentPortalPage })));
 const StudentCoursePage = lazy(() => import('../features/student-portal/components/StudentCoursePage').then((module) => ({ default: module.StudentCoursePage })));
@@ -72,6 +75,9 @@ export function App() {
           )}
         >
           <Route element={<HomePage />} index />
+          <Route element={<NewsPage />} path="noticias" />
+          <Route element={<LibraryPage />} path="biblioteca" />
+          <Route element={<RequireRole allowed={['ADMINISTRADOR_SISTEMA']}><PrivacyAdminPage /></RequireRole>} path="privacidad" />
           <Route element={<RequireRole allowed={['ALUMNO']}><StudentPortalPage /></RequireRole>} path="portal" />
           <Route element={<RequireRole allowed={['ALUMNO']}><StudentCoursePage /></RequireRole>} path="portal/cursos/:courseId" />
           <Route element={<RequireRole allowed={['ALUMNO']}><StudentHistoryPage /></RequireRole>} path="portal/historial" />

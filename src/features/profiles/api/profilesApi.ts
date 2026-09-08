@@ -1,5 +1,6 @@
 import { api } from '../../../api/client';
 import type {
+  ActiveState,
   PaginatedResponse,
   StudentListItem,
   StudentState,
@@ -9,6 +10,7 @@ import type {
 export type DirectoryFilters<TState extends string> = {
   search?: string;
   estado?: TState;
+  estadoPersona?: ActiveState;
   page: number;
   pageSize: number;
 };

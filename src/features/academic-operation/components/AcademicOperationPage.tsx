@@ -32,7 +32,6 @@ import {
 import {
   createEnrollment,
   createScheduledCourse,
-  enrollCourse,
   getAuthorizations,
   getEnrollmentCourses,
   getEnrollments,
@@ -53,8 +52,8 @@ import {
 } from '../scheduledCourseEditing';
 import { getAllActiveTeachers } from '../loadAllActiveTeachers';
 import { ScheduledCourseForm } from './ScheduledCourseForm';
+import { CourseEnrollmentAction } from './CourseEnrollmentAction';
 
-const today = new Date().toISOString().slice(0, 10);
 const tabs = [
   { entity: 'cursos-programados', label: 'Cursos programados' },
   { entity: 'matriculas', label: 'Matrículas e historial' },
@@ -491,13 +490,6 @@ function EnrollmentDetail({ enrollment, onClose }: { enrollment: CareerEnrollmen
   });
   const enrolledIds = useMemo(() => new Set(courses.data?.map((item) => item.cursoProgramado.id)), [courses.data]);
   const available = scheduled.data?.filter((item) => item.planCurricularId === enrollment.matricula.planCurricularId && item.estado === 'activo' && !enrolledIds.has(item.id)) ?? [];
-  const enroll = useMutation({
-    mutationFn: () => enrollCourse({ matriculaCarreraId: enrollment.matricula.id, cursoProgramadoId: courseId, fechaInscripcion: today }),
-    onSuccess: async () => {
-      setCourseId('');
-      await queryClient.invalidateQueries({ queryKey: ['operation', 'enrollment-courses', enrollment.matricula.id] });
-    },
-  });
   const request = useMutation({
     mutationFn: () => {
       const parsed = authorizationSchema.parse({ motivo: reason });
@@ -514,7 +506,12 @@ function EnrollmentDetail({ enrollment, onClose }: { enrollment: CareerEnrollmen
       <header><div><p className="eyebrow">{enrollment.periodoNombre}</p><h2>{enrollment.persona.apellidoPaterno}, {enrollment.persona.nombres}</h2><p>{enrollment.carreraNombre} · {enrollment.planNombre}</p></div><Button aria-label="Cerrar detalle" onClick={onClose} type="button" variant="ghost"><X size={18} /></Button></header>
       <div className="operation-detail__grid">
         <section><h3>Cursos inscritos</h3>{courses.data?.length ? <ul className="trajectory-list">{courses.data.map((item) => <li key={item.inscripcion.id}><span>{item.ciclo}</span><div><strong>{item.cursoNombre}</strong><small>{item.cursoCodigo} · {item.inscripcion.fechaInscripcion}</small></div></li>)}</ul> : <p className="operation-empty">Aún no hay cursos inscritos.</p>}</section>
-        <section><h3>Inscribir curso</h3><select className="form-select" onChange={(event) => setCourseId(event.target.value)} value={courseId}><option value="">Seleccionar curso programado</option>{available.map((item) => <option key={item.id} value={item.id}>Ciclo {item.ciclo} · {item.cursoNombre}</option>)}</select><Button disabled={!courseId || enroll.isPending} onClick={() => enroll.mutate()} type="button">Inscribir</Button>{enroll.error ? <div className="error-banner">{getApiErrorMessage(enroll.error, 'No se pudo inscribir.')}</div> : null}<textarea className="form-textarea" onChange={(event) => setReason(event.target.value)} placeholder="Si no cumple prerrequisitos, explica el motivo de la excepción." value={reason} /><Button disabled={!courseId || request.isPending} onClick={() => request.mutate()} type="button" variant="secondary">Solicitar excepción</Button>{request.error ? <div className="error-banner">{getApiErrorMessage(request.error, 'No se pudo solicitar la excepción.')}</div> : null}</section>
+        <section><h3>Inscribir curso</h3><select aria-label="Curso programado para inscribir" className="form-select" onChange={(event) => setCourseId(event.target.value)} value={courseId}><option value="">Seleccionar curso programado</option>{available.map((item) => <option key={item.id} value={item.id}>Ciclo {item.ciclo} · {item.cursoNombre}</option>)}</select>
+          <CourseEnrollmentAction key={`${enrollment.matricula.id}-${courseId}`} personId={enrollment.persona.id} enrollmentId={enrollment.matricula.id} scheduledCourseId={courseId} planCourseId={available.find((item) => item.id === courseId)?.planCursoId ?? ''} hasAuthorization={authorizations.data?.some((item) => item.cursoProgramadoId === courseId && item.estado === 'aprobada') ?? false} onEnrolled={async () => {
+            setCourseId('');
+            await queryClient.invalidateQueries({ queryKey: ['operation', 'enrollment-courses', enrollment.matricula.id] });
+          }} />
+          <textarea className="form-textarea" onChange={(event) => setReason(event.target.value)} placeholder="Si no cumple prerrequisitos, explica el motivo de la excepción." value={reason} /><Button disabled={!courseId || request.isPending} onClick={() => request.mutate()} type="button" variant="secondary">Solicitar excepción</Button>{request.error ? <div className="error-banner">{getApiErrorMessage(request.error, 'No se pudo solicitar la excepción.')}</div> : null}</section>
       </div>
       {authorizations.data?.length ? <section><h3>Solicitudes</h3><div className="authorization-strip">{authorizations.data.map((item) => <span className={`authorization-state is-${item.estado}`} key={item.id}>{item.cursoCodigo} · {item.estado}</span>)}</div></section> : null}
     </aside>

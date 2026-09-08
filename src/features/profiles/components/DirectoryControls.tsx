@@ -11,6 +11,7 @@ type StatusOption = {
 export function DirectoryToolbar({
   searchDraft,
   status,
+  statusLabel = 'Estado',
   statusOptions,
   onSearchChange,
   onSearchSubmit,
@@ -20,6 +21,7 @@ export function DirectoryToolbar({
 }: {
   searchDraft: string;
   status: string;
+  statusLabel?: string;
   statusOptions: StatusOption[];
   onSearchChange: (value: string) => void;
   onSearchSubmit: (event: FormEvent) => void;
@@ -43,7 +45,7 @@ export function DirectoryToolbar({
         <Button type="submit" variant="secondary">Buscar</Button>
       </form>
       <label className="select-filter">
-        <span>Estado</span>
+        <span>{statusLabel}</span>
         <select onChange={(event) => onStatusChange(event.target.value)} value={status}>
           <option value="">Todos</option>
           {statusOptions.map((option) => (

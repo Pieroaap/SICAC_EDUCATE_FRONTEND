@@ -2,7 +2,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { GraduationCap, SquarePen } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import type { StudentState } from '../../../api/types';
+import type { ActiveState, StudentState } from '../../../api/types';
 import { Button } from '../../../components/ui/Button';
 import { cn } from '../../../lib/cn';
 import { useDebouncedValue } from '../../../lib/useDebouncedValue';
@@ -13,6 +13,7 @@ const PAGE_SIZE = 20;
 const states: StudentState[] = [
   'activo', 'en_pausa', 'retirado', 'sin_contestar', 'graduado',
 ];
+const personStates: ActiveState[] = ['activo', 'inactivo'];
 const stateLabels: Record<StudentState, string> = {
   activo: 'Activo',
   en_pausa: 'En pausa',
@@ -30,15 +31,18 @@ export function StudentsListPage() {
   const search = searchParams.get('search') ?? '';
   const statusParam = searchParams.get('estado');
   const estado = states.find((state) => state === statusParam);
+  const personStatusParam = searchParams.get('estadoPersona');
+  const estadoPersona = personStates.find((state) => state === personStatusParam);
   const rawPage = Number(searchParams.get('page') ?? '1');
   const page = Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1;
   const [searchDraft, setSearchDraft] = useState(search);
   const debouncedSearch = useDebouncedValue(searchDraft.trim(), 350);
   const students = useQuery({
-    queryKey: ['students', { search, estado, page, pageSize: PAGE_SIZE }],
+    queryKey: ['students', { search, estado, estadoPersona, page, pageSize: PAGE_SIZE }],
     queryFn: () => getStudents({
       search: search || undefined,
       estado,
+      estadoPersona,
       page,
       pageSize: PAGE_SIZE,
     }),
@@ -57,7 +61,12 @@ export function StudentsListPage() {
     setSearchParams(params, { replace: true });
   }, [debouncedSearch, search, searchDraft, searchParams, setSearchParams]);
 
-  function updateParams(next: { search?: string; estado?: string; page?: number }) {
+  function updateParams(next: {
+    search?: string;
+    estado?: string;
+    estadoPersona?: string;
+    page?: number;
+  }) {
     const params = new URLSearchParams(searchParams);
     for (const [key, value] of Object.entries(next)) {
       if (value && !(key === 'page' && value === 1)) params.set(key, String(value));
@@ -73,7 +82,7 @@ export function StudentsListPage() {
   }
 
   const result = students.data;
-  const hasFilters = Boolean(search || estado);
+  const hasFilters = Boolean(search || estado || estadoPersona);
   const isSearching = searchDraft.trim() !== search || students.isFetching;
 
   return (
@@ -95,7 +104,22 @@ export function StudentsListPage() {
         onStatusChange={(value) => updateParams({ estado: value })}
         searchDraft={searchDraft}
         status={estado ?? ''}
+        statusLabel="Estado del alumno"
         statusOptions={states.map((state) => ({ label: stateLabels[state], value: state }))}
+        extraFilters={(
+          <label className="select-filter">
+            <span>Estado del registro</span>
+            <select
+              aria-label="Estado del registro"
+              onChange={(event) => updateParams({ estadoPersona: event.target.value })}
+              value={estadoPersona ?? ''}
+            >
+              <option value="">Todos</option>
+              <option value="activo">Activos</option>
+              <option value="inactivo">Inactivos</option>
+            </select>
+          </label>
+        )}
       />
 
       {students.isError ? (
@@ -127,7 +151,7 @@ export function StudentsListPage() {
                   <th>Trayectoria</th>
                   <th>Beneficio</th>
                   <th>Acceso</th>
-                  <th>Estado</th>
+                  <th>Estados</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
@@ -152,9 +176,12 @@ export function StudentsListPage() {
                     </td>
                     <td>{student.tieneAcceso ? 'Habilitado' : 'Sin acceso'}</td>
                     <td>
-                      <span className={cn('profile-state', `is-${student.estado}`)}>
-                        {stateLabels[student.estado]}
-                      </span>
+                      <div className="student-state-summary">
+                        <span className={cn('profile-state', `is-${student.estadoPersona}`)}>
+                          Registro {student.estadoPersona === 'activo' ? 'activo' : 'inactivo'}
+                        </span>
+                        <small>Alumno {stateLabels[student.estado].toLocaleLowerCase('es-PE')}</small>
+                      </div>
                     </td>
                     <td className="table-actions">
                       <Button asChild className="table-action-button" variant="ghost">

@@ -126,6 +126,7 @@ export type StudentListItem = {
   telefono: string | null;
   dni: string;
   estado: StudentState;
+  estadoPersona: ActiveState;
   anioIngreso: number;
   periodoIngreso: string;
   beneficio: 'becado' | 'credito' | 'becado_credito' | 'normal';

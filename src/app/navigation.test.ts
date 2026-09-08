@@ -13,6 +13,8 @@ describe('getNavigationGroups', () => {
 
     expect(items).toEqual([
       'Panel general',
+      'Noticias',
+      'Documentos institucionales',
       'Personas',
       'Alumnos',
       'Profesores',

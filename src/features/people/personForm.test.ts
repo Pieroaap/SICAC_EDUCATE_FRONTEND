@@ -3,6 +3,7 @@ import {
   createPersonSchema,
   emptyCreatePersonValues,
   emptyPersonValues,
+  emptyStudentProfileValues,
   toCreatePersonPayload,
   toPersonFormValues,
   toPersonPayload,
@@ -78,11 +79,23 @@ describe('personForm helpers', () => {
       initialRole: 'ALUMNO',
       alumnoPerfil: {
         estado: 'activo',
+        anioIngreso: new Date().getFullYear(),
+        periodoIngreso: `${new Date().getFullYear()}-I`,
         beneficio: 'normal',
         tipoBeneficio: 'regular',
       },
       tutor: undefined,
     });
+  });
+
+  it('construye el ingreso histórico 2020-I sin depender del periodo operativo', () => {
+    const payload = toCreatePersonPayload({
+      ...emptyCreatePersonValues,
+      alumnoPerfil: { ...emptyStudentProfileValues, anioIngreso: 2020, periodoIngreso: '2026-III', cicloIngreso: 'I' },
+      initialRegistration: { carreraId: 'career-1', periodoInicioId: 'period-2026-iii' },
+    });
+    expect(payload.alumnoPerfil).toMatchObject({ anioIngreso: 2020, periodoIngreso: '2020-I' });
+    expect(payload.initialRegistration?.periodoInicioId).toBe('period-2026-iii');
   });
 
   it('normalizes an empty medical condition to null', () => {

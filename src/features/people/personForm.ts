@@ -21,6 +21,7 @@ export const studentProfileSchema = z.object({
   estado: z.enum(['activo', 'en_pausa', 'retirado', 'sin_contestar', 'graduado']),
   anioIngreso: z.coerce.number().int().min(1900, 'Año inválido').max(2100, 'Año inválido'),
   periodoIngreso: z.string().trim().regex(/^[0-9]{4}\s*-\s*(I|II|III)$/, 'Usa formato 2026-I, 2026-II o 2026-III'),
+  cicloIngreso: z.enum(['I', 'II', 'III']).optional(),
   beneficio: z.enum(['becado', 'credito', 'becado_credito', 'normal']),
   tipoBeneficio: z.enum(['regular', 'media_beca', 'tercio_beca', 'especial', 'beca_completa']),
   condicionMedica: z.string().trim().max(1000, 'Máximo 1000 caracteres').optional(),
@@ -98,6 +99,7 @@ export const emptyStudentProfileValues: StudentProfileValues = {
   estado: 'activo',
   anioIngreso: new Date().getFullYear(),
   periodoIngreso: `${new Date().getFullYear()}-I`,
+  cicloIngreso: 'I',
   beneficio: 'normal',
   tipoBeneficio: 'regular',
   condicionMedica: '',
@@ -165,7 +167,9 @@ export function toCreatePersonPayload(values: CreatePersonValues) {
   return {
     ...base,
     initialRole: values.initialRole,
-    alumnoPerfil: values.initialRole === 'ALUMNO' ? values.alumnoPerfil : undefined,
+    alumnoPerfil: values.initialRole === 'ALUMNO' && values.alumnoPerfil
+      ? toStudentProfilePayload(values.alumnoPerfil)
+      : undefined,
     initialRegistration: values.initialRole === 'ALUMNO' ? values.initialRegistration : undefined,
     tutor: values.initialRole === 'ALUMNO' && values.includeTutor && values.tutor
       ? {
@@ -177,9 +181,10 @@ export function toCreatePersonPayload(values: CreatePersonValues) {
 }
 
 export function toStudentProfilePayload(values: StudentProfileValues) {
+  const { cicloIngreso, ...profile } = values;
   return {
-    ...values,
-    periodoIngreso: values.periodoIngreso.trim().toUpperCase().replace(/\s*-\s*/, '-'),
+    ...profile,
+    periodoIngreso: `${values.anioIngreso}-${cicloIngreso ?? values.periodoIngreso.trim().split('-').at(-1)}`,
     condicionMedica: values.condicionMedica?.trim() || null,
   };
 }

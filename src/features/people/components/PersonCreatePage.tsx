@@ -84,7 +84,6 @@ export function PersonCreatePage() {
   const initialRole = useWatch({ control, name: 'initialRole' });
   const includeTutor = useWatch({ control, name: 'includeTutor' });
   const careerId = useWatch({ control, name: 'initialRegistration.carreraId' });
-  const periodId = useWatch({ control, name: 'initialRegistration.periodoInicioId' });
   const careers = useQuery({ queryKey: ['academic', 'careers'], queryFn: getCareers });
   const periods = useQuery({
     queryKey: ['academic', 'periods', careerId],
@@ -119,12 +118,6 @@ export function PersonCreatePage() {
       left.anio - right.anio || periodOrder[left.periodo] - periodOrder[right.periodo]
     )) ?? []
     : [];
-  useEffect(() => {
-    const period = periods.data?.find((item) => item.id === periodId);
-    if (!period) return;
-    setValue('alumnoPerfil.anioIngreso', period.anio);
-    setValue('alumnoPerfil.periodoIngreso', `${period.anio}-${period.periodo}`);
-  }, [periodId, periods.data, setValue]);
   const roleDescription = roleOptions.find((role) => role.value === initialRole)?.description;
 
   const createMutation = useMutation({
@@ -216,7 +209,7 @@ export function PersonCreatePage() {
                   ))}
                 </select>
               </FormField>
-              <FormField error={fieldError(errors.initialRegistration?.periodoInicioId)} htmlFor="initialPeriod" label="Periodo de ingreso">
+              <FormField error={fieldError(errors.initialRegistration?.periodoInicioId)} htmlFor="initialPeriod" label="Periodo operativo de inscripción">
                 <select className="form-select" id="initialPeriod" {...register('initialRegistration.periodoInicioId')}>
                   <option value="">Seleccionar</option>
                   {eligiblePeriods.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
@@ -224,6 +217,14 @@ export function PersonCreatePage() {
                 {careerId && !periods.isPending && !currentPeriod ? (
                   <small>La carrera no tiene un periodo académico vigente.</small>
                 ) : null}
+              </FormField>
+              <FormField error={fieldError(errors.alumnoPerfil?.anioIngreso)} htmlFor="admissionYear" label="Año de ingreso histórico">
+                <Input id="admissionYear" inputMode="numeric" type="number" {...register('alumnoPerfil.anioIngreso')} />
+              </FormField>
+              <FormField error={fieldError(errors.alumnoPerfil?.cicloIngreso)} htmlFor="admissionTerm" label="Ciclo de ingreso histórico">
+                <select className="form-select" id="admissionTerm" {...register('alumnoPerfil.cicloIngreso')}>
+                  <option value="I">I</option><option value="II">II</option><option value="III">III</option>
+                </select>
               </FormField>
               <FormField error={fieldError(errors.alumnoPerfil?.beneficio)} htmlFor="beneficio" label="Beneficio">
                 <select className="form-select" id="beneficio" {...register('alumnoPerfil.beneficio')}>
