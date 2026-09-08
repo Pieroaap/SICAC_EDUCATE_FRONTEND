@@ -25,7 +25,7 @@ beforeEach(() => {
       nombres: 'Caso',
       telefono: null,
       dni: '12345678',
-      estado: 'activo',
+      estado: 'en_pausa',
       estadoPersona: 'inactivo',
       anioIngreso: 2026,
       periodoIngreso: '2026-I',
@@ -53,13 +53,13 @@ function renderPage() {
 }
 
 describe('StudentsListPage', () => {
-  it('distingue el registro institucional del estado operativo y permite filtrarlo', async () => {
+  it('muestra solo el estado académico en la insignia y conserva el filtro institucional', async () => {
     const user = userEvent.setup();
     renderPage();
 
-    expect(await screen.findByText('Registro inactivo')).toBeInTheDocument();
-    expect(screen.getByText('Alumno activo')).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Estados' })).toBeInTheDocument();
+    expect(await screen.findByText('En pausa', { selector: 'span' })).toHaveClass('profile-state', 'is-en_pausa');
+    expect(screen.queryByText('Registro inactivo')).not.toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Estado del alumno' })).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText('Estado del registro'), 'inactivo');
 
