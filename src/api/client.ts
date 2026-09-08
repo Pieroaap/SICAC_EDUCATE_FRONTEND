@@ -19,6 +19,9 @@ api.interceptors.request.use(addAuthorization);
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
+    if ((error.response?.data as { error?: string } | undefined)?.error === 'PRIVACY_ACCEPTANCE_REQUIRED') {
+      window.dispatchEvent(new Event('sicac:privacy-required'));
+    }
     const request = error.config as (InternalAxiosRequestConfig & { _retried?: boolean }) | undefined;
     const session = readSession();
     if (error.response?.status !== 401 || !request || request._retried || !session) {

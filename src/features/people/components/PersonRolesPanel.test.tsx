@@ -208,13 +208,15 @@ describe('PersonRolesPanel', () => {
     await user.click(screen.getAllByRole('button', { name: 'Cambiar rol' })[0]!);
     const dialog = screen.getByRole('dialog');
     await user.selectOptions(within(dialog).getByLabelText('Carrera para el rol alumno'), 'career-1');
-    await user.selectOptions(await within(dialog).findByLabelText('Periodo de ingreso del rol alumno'), 'period-1');
+    await user.selectOptions(await within(dialog).findByLabelText('Periodo operativo de inscripción del rol alumno'), 'period-1');
+    await user.clear(within(dialog).getByLabelText('Año de ingreso histórico del rol alumno'));
+    await user.type(within(dialog).getByLabelText('Año de ingreso histórico del rol alumno'), '2020');
     await user.click(within(dialog).getByRole('button', { name: 'Cambiar rol' }));
 
     await waitFor(() => expect(changePersonRole).toHaveBeenCalledWith('person-1', {
       fromRole: 'PROFESOR',
       toRole: 'ALUMNO',
-      student: { carreraId: 'career-1', periodoInicioId: 'period-1', estado: 'activo', beneficio: 'normal', tipoBeneficio: 'regular' },
+      student: { carreraId: 'career-1', periodoInicioId: 'period-1', anioIngreso: 2020, periodoIngreso: '2020-I', estado: 'activo', beneficio: 'normal', tipoBeneficio: 'regular' },
     }));
   });
 
@@ -268,15 +270,15 @@ describe('PersonRolesPanel', () => {
 
     await screen.findByRole('option', { name: 'Artes' });
     await user.selectOptions(screen.getByLabelText('Carrera para el rol alumno'), 'career-1');
-    await user.selectOptions(await screen.findByLabelText('Periodo de ingreso del rol alumno'), 'period-1');
+    await user.selectOptions(await screen.findByLabelText('Periodo operativo de inscripción del rol alumno'), 'period-1');
     await user.click(screen.getAllByRole('button', { name: 'Cambiar rol' })[0]!);
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).getByLabelText('Carrera para el rol alumno')).toHaveValue('');
-    expect(within(dialog).getByLabelText('Periodo de ingreso del rol alumno')).toHaveValue('');
+    expect(within(dialog).getByLabelText('Periodo operativo de inscripción del rol alumno')).toHaveValue('');
 
     await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }));
     expect(screen.getByLabelText('Carrera para el rol alumno')).toHaveValue('career-1');
-    expect(screen.getByLabelText('Periodo de ingreso del rol alumno')).toHaveValue('period-1');
+    expect(screen.getByLabelText('Periodo operativo de inscripción del rol alumno')).toHaveValue('period-1');
   });
 
   it('limpia el borrador de alta de Alumno después de agregarlo', async () => {
@@ -288,12 +290,12 @@ describe('PersonRolesPanel', () => {
 
     await screen.findByRole('option', { name: 'Artes' });
     await user.selectOptions(screen.getByLabelText('Carrera para el rol alumno'), 'career-1');
-    await user.selectOptions(await screen.findByLabelText('Periodo de ingreso del rol alumno'), 'period-1');
+    await user.selectOptions(await screen.findByLabelText('Periodo operativo de inscripción del rol alumno'), 'period-1');
     await user.click(screen.getByRole('button', { name: 'Agregar rol' }));
 
     await waitFor(() => expect(assignPersonRole).toHaveBeenCalledOnce());
     expect(screen.getByLabelText('Carrera para el rol alumno')).toHaveValue('');
-    expect(screen.getByLabelText('Periodo de ingreso del rol alumno')).toHaveValue('');
+    expect(screen.getByLabelText('Periodo operativo de inscripción del rol alumno')).toHaveValue('');
   });
 
   it('limpia el borrador del cambio al dejar de elegir Alumno', async () => {
@@ -306,11 +308,11 @@ describe('PersonRolesPanel', () => {
     const dialog = screen.getByRole('dialog');
     await screen.findByRole('option', { name: 'Artes' });
     await user.selectOptions(within(dialog).getByLabelText('Carrera para el rol alumno'), 'career-1');
-    await user.selectOptions(await within(dialog).findByLabelText('Periodo de ingreso del rol alumno'), 'period-1');
+    await user.selectOptions(await within(dialog).findByLabelText('Periodo operativo de inscripción del rol alumno'), 'period-1');
     await user.selectOptions(within(dialog).getByLabelText('Nuevo rol para reemplazar'), 'DIRECTOR_ACADEMICO');
     await user.selectOptions(within(dialog).getByLabelText('Nuevo rol para reemplazar'), 'ALUMNO');
 
     expect(within(dialog).getByLabelText('Carrera para el rol alumno')).toHaveValue('');
-    expect(within(dialog).getByLabelText('Periodo de ingreso del rol alumno')).toHaveValue('');
+    expect(within(dialog).getByLabelText('Periodo operativo de inscripción del rol alumno')).toHaveValue('');
   });
 });

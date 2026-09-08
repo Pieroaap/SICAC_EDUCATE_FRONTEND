@@ -24,6 +24,10 @@ export function PersonAccessPanel({ actorPersonaId, actorRoles, onFeedback, pers
   const canEnable = canProvisionAccess(actorRoles);
   const isSelf = actorPersonaId === person.id;
   const canReset = canResetPassword(actorRoles, person) && !isSelf;
+  const activeRoles = person.roles.filter((assignment) => (
+    assignment.estado === 'activo' && !assignment.fechaFin
+  ));
+  const activeRoleNames = [...new Set(activeRoles.map((assignment) => assignment.nombre))];
 
   async function refreshPerson() {
     await Promise.all([
@@ -35,7 +39,9 @@ export function PersonAccessPanel({ actorPersonaId, actorRoles, onFeedback, pers
   }
 
   const enableMutation = useMutation({
-    mutationFn: () => enablePersonAccess(person.id, role),
+    mutationFn: () => activeRoles.length > 0
+      ? enablePersonAccess(person.id)
+      : enablePersonAccess(person.id, role),
     onSuccess: async () => {
       onFeedback({
         type: 'success',
@@ -88,19 +94,27 @@ export function PersonAccessPanel({ actorPersonaId, actorRoles, onFeedback, pers
         </>
       ) : (
         <>
-          <p>Crea una cuenta y asigna el rol inicial.</p>
-          <label className="select-filter action-panel__select">
-            <span>Rol inicial</span>
-            <select
-              disabled={!canEnable || enableMutation.isPending}
-              onChange={(event) => setRole(event.target.value as ProvisionableRole)}
-              value={role}
-            >
-              {accessRoleOptions.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-          </label>
+          {activeRoles.length > 0 ? (
+            <p>
+              Crea una cuenta de acceso. Usará sus roles activos: {activeRoleNames.join(', ')}.
+            </p>
+          ) : (
+            <>
+              <p>Crea una cuenta y asigna el rol inicial porque la persona aún no tiene roles activos.</p>
+              <label className="select-filter action-panel__select">
+                <span>Rol inicial</span>
+                <select
+                  disabled={!canEnable || enableMutation.isPending}
+                  onChange={(event) => setRole(event.target.value as ProvisionableRole)}
+                  value={role}
+                >
+                  {accessRoleOptions.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </label>
+            </>
+          )}
           <Button
             disabled={!canEnable || enableMutation.isPending}
             onClick={() => {

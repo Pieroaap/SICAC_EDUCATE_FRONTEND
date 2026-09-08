@@ -45,7 +45,7 @@ export type CreateGuardianPersonInput = PersonPayloadBase & {
 
 export type CreatePersonInput = PersonPayloadBase & {
   initialRole: InitialPersonRole;
-  alumnoPerfil?: StudentProfileValues;
+  alumnoPerfil?: Omit<StudentProfileValues, 'cicloIngreso' | 'condicionMedica'> & { condicionMedica?: string | null };
   initialRegistration?: { carreraId: string; periodoInicioId: string };
   tutor?: CreateGuardianPersonInput;
 };
@@ -66,8 +66,8 @@ export async function updatePerson(personId: string, input: UpdatePersonInput) {
 
 export type ProvisionableRole = RoleCode;
 
-export async function enablePersonAccess(personId: string, role: ProvisionableRole) {
-  const { data } = await api.post(`/personas/${personId}/acceso`, { role });
+export async function enablePersonAccess(personId: string, role?: ProvisionableRole) {
+  const { data } = await api.post(`/personas/${personId}/acceso`, role ? { role } : {});
   return data;
 }
 
@@ -116,6 +116,7 @@ export async function assignPersonRole(
     role: RoleCode;
     student?: {
       carreraId: string; periodoInicioId: string; estado: 'activo';
+      anioIngreso?: number; periodoIngreso?: string;
       beneficio: 'normal'; tipoBeneficio: 'regular';
     };
   },
@@ -136,6 +137,7 @@ export async function changePersonRole(
     toRole: RoleCode;
     student?: {
       carreraId: string; periodoInicioId: string; estado: 'activo';
+      anioIngreso?: number; periodoIngreso?: string;
       beneficio: 'normal'; tipoBeneficio: 'regular';
     };
   },

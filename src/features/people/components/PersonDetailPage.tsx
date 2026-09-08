@@ -9,7 +9,7 @@ import { StatusBadge } from '../../../components/StatusBadge';
 import { Button } from '../../../components/ui/Button';
 import { useAuth } from '../../auth/AuthProvider';
 import { getPersonDetail, updatePerson, updateTeacherRoleStatus } from '../api/peopleApi';
-import { hasActiveRole } from '../personActions';
+import { hasActiveRole, uniquePersonRoles } from '../personActions';
 import {
   emptyPersonValues,
   personSchema,
@@ -136,6 +136,9 @@ export function PersonDetailPage() {
   const personName = [person.apellidoPaterno, person.apellidoMaterno, person.nombres]
     .filter(Boolean)
     .join(' ');
+  const currentRoles = uniquePersonRoles(person.roles.filter((role) => (
+    role.estado === 'activo' && !role.fechaFin
+  )));
   const isStudent = hasActiveRole(person, 'ALUMNO');
   const teacherRole = person.roles.find((role) => role.codigo === 'PROFESOR' && !role.fechaFin);
   const canUpdateTeacherRole = actorRoles.some((role) => (
@@ -224,18 +227,18 @@ export function PersonDetailPage() {
         <article className="person-summary-card">
           <p className="eyebrow">Roles</p>
           <div className="role-list">
-            {person.roles.length > 0
-              ? person.roles.map((role) => (
-                <span key={`${role.codigo}-${role.fechaInicio}`}>
+            {currentRoles.length > 0
+              ? currentRoles.map((role) => (
+                <span key={role.codigo}>
                   {role.nombre}
                 </span>
               ))
               : <em>Sin rol asignado</em>}
           </div>
           <span className="person-summary-note">
-            {person.roles.length > 0
-              ? 'Los roles se administrarán en sus módulos específicos.'
-              : 'Aún no tiene relaciones de rol registradas.'}
+            {currentRoles.length > 0
+              ? 'Se muestran únicamente los roles vigentes.'
+              : 'No tiene roles vigentes.'}
           </span>
         </article>
       </section>

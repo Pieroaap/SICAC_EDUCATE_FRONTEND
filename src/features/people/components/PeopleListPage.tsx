@@ -8,6 +8,7 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { useDebouncedValue } from '../../../lib/useDebouncedValue';
 import { getPeople } from '../api/peopleApi';
+import { uniquePersonRoles } from '../personActions';
 
 const PAGE_SIZE = 20;
 const roleOptions: Array<{ label: string; value: RoleCode }> = [
@@ -198,7 +199,9 @@ export function PeopleListPage() {
                     <td>
                       <div className="role-list">
                         {person.roles.length > 0
-                          ? person.roles.map((role) => <span key={role.codigo}>{role.nombre}</span>)
+                          ? uniquePersonRoles(person.roles).map((role) => (
+                            <span key={role.codigo}>{role.nombre}</span>
+                          ))
                           : <em>Sin rol asignado</em>}
                       </div>
                     </td>

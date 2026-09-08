@@ -1,0 +1,17 @@
+.institutional-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
+.institutional-toolbar, .institutional-pagination, .institutional-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.institutional-list { display: grid; gap: 20px; }
+.institutional-post, .privacy-card { border: 1px solid var(--line); border-radius: 16px; padding: 24px; background: var(--surface); }
+.institutional-post h2 { margin: 8px 0 16px; }
+.institutional-post header { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; color: var(--ink-secondary); font-size: 14px; }
+.institutional-post footer { margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap; }
+.institutional-form { display: grid; gap: 16px; }
+.institutional-form textarea { min-height: 180px; }
+.institutional-pagination { justify-content: flex-end; margin-top: 20px; }
+.privacy-card { max-width: 880px; margin: 0 auto; display: grid; gap: 20px; }
+.privacy-text { max-height: 52dvh; overflow: auto; padding: 16px; border: 1px solid var(--line); border-radius: 8px; }
+.privacy-check { display: flex; align-items: flex-start; gap: 12px; margin: 16px 0; min-height: 44px; }
+.privacy-check input { margin-top: 5px; width: 18px; height: 18px; flex-shrink: 0; accent-color: #c41e3a; }
+.privacy-notice { border-left: 3px solid #ad7910; padding: 12px; background: var(--canvas); }
+.institutional-form fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 12px; max-height: 240px; overflow: auto; }
+.institutional-file { display: flex; align-items: center; gap: 12px; min-height: 44px; overflow-wrap: anywhere; }
