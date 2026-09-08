@@ -151,7 +151,7 @@ export function StudentsListPage() {
                   <th>Trayectoria</th>
                   <th>Beneficio</th>
                   <th>Acceso</th>
-                  <th>Estados</th>
+                  <th>Estado del alumno</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
@@ -176,12 +176,9 @@ export function StudentsListPage() {
                     </td>
                     <td>{student.tieneAcceso ? 'Habilitado' : 'Sin acceso'}</td>
                     <td>
-                      <div className="student-state-summary">
-                        <span className={cn('profile-state', `is-${student.estadoPersona}`)}>
-                          Registro {student.estadoPersona === 'activo' ? 'activo' : 'inactivo'}
-                        </span>
-                        <small>Alumno {stateLabels[student.estado].toLocaleLowerCase('es-PE')}</small>
-                      </div>
+                      <span className={cn('profile-state', `is-${student.estado}`)}>
+                        {stateLabels[student.estado]}
+                      </span>
                     </td>
                     <td className="table-actions">
                       <Button asChild className="table-action-button" variant="ghost">
