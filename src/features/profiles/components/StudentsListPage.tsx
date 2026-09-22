@@ -8,6 +8,8 @@ import { cn } from '../../../lib/cn';
 import { useDebouncedValue } from '../../../lib/useDebouncedValue';
 import { getStudents } from '../api/profilesApi';
 import { DirectoryPagination, DirectoryToolbar } from './DirectoryControls';
+import { DirectoryAccessButton } from './DirectoryAccessButton';
+import { useDirectoryAccess } from './useDirectoryAccess';
 
 const PAGE_SIZE = 20;
 const states: StudentState[] = [
@@ -27,6 +29,7 @@ function humanize(value: string) {
 }
 
 export function StudentsListPage() {
+  const access = useDirectoryAccess();
   const [searchParams, setSearchParams] = useSearchParams();
   const search = searchParams.get('search') ?? '';
   const statusParam = searchParams.get('estado');
@@ -96,6 +99,8 @@ export function StudentsListPage() {
           <Link to="/personas/nueva?rol=ALUMNO">Crear alumno</Link>
         </Button>
       </header>
+
+      {access.feedback ? <div className={access.feedback.type === 'error' ? 'error-banner' : 'success-banner'} role={access.feedback.type === 'error' ? 'alert' : 'status'}>{access.feedback.message}</div> : null}
 
       <DirectoryToolbar
         isSearching={isSearching}
@@ -181,6 +186,11 @@ export function StudentsListPage() {
                       </span>
                     </td>
                     <td className="table-actions">
+                      {access.canGiveAccess && !student.tieneAcceso ? <DirectoryAccessButton
+                        disabled={access.mutation.isPending || students.isPlaceholderData}
+                        pending={access.mutation.isPending && access.mutation.variables?.personId === student.id}
+                        onClick={() => access.mutation.mutate({ personId: student.id, name: `${student.apellidos} ${student.nombres}`, initialRole: 'ALUMNO' })}
+                      /> : null}
                       <Button asChild className="table-action-button" variant="ghost">
                         <Link to={`/personas/${student.id}`}>
                           <SquarePen size={15} />
