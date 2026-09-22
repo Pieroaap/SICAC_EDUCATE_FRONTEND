@@ -2,9 +2,10 @@ import { api } from '../../../api/client';
 import type { PaginatedResponse } from '../../../api/types';
 
 export type NewsPost = { id: string; titulo: string; contenido: string; estado: 'borrador' | 'publicada' | 'retirada'; fijada: boolean;
-  publicadaAt: string | null; createdAt: string; imagenDocumentoId?: string | null; documentos: { id: string; nombreOriginal: string }[] };
+  publicadaAt: string | null; createdAt: string; imagenDocumentoId?: string | null; documentos: { id: string; nombreOriginal: string; titulo?: string | null }[] };
 export type NewsInput = Pick<NewsPost, 'titulo' | 'contenido' | 'estado' | 'fijada'> & { documentoIds: string[]; imagenDocumentoId?: string | null };
 export const getNewsImage = async (id: string) => (await api.get<{ url: string; expiresAt: string }>(`/noticias/${id}/imagen`)).data;
+export const deleteNews = async (id: string) => { await api.delete(`/noticias/${id}`); };
 export async function uploadNewsImage(file: File) {
   const body = new FormData(); body.append('archivo', file);
   return (await api.post<{ id: string }>('/noticias/imagenes', body)).data;

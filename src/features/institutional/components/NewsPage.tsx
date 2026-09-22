@@ -10,7 +10,8 @@ import { Input } from '../../../components/ui/Input';
 import { useAuth } from '../../auth/AuthProvider';
 import { downloadDocument } from '../../documents/api/documentsApi';
 import { getLibraryOptions } from '../api/libraryApi';
-import { getNews, saveNews, uploadNewsImage, type NewsPost } from '../api/institutionalApi';
+import { deleteNews, getNews, saveNews, uploadNewsImage, type NewsPost } from '../api/institutionalApi';
+import { NewsDialog } from './NewsDialog';
 import { NewsImage } from './NewsImage';
 import '../institutional.css';
 
@@ -20,6 +21,8 @@ type Values = z.infer<typeof schema>;
 export function NewsPage() {
   const { profile } = useAuth();
   const manager = profile?.roles.some((role) => ['ADMINISTRADOR_SISTEMA', 'DIRECTOR_ACADEMICO', 'GESTOR_ACADEMICO'].includes(role.codigo)) ?? false;
+  const admin = profile?.roles.some((role) => role.codigo === 'ADMINISTRADOR_SISTEMA') ?? false;
+  const [deleting, setDeleting] = useState<NewsPost | null>(null);
   const [page, setPage] = useState(1);
   const [manage, setManage] = useState(false);
   const [editing, setEditing] = useState<NewsPost | 'new' | null>(null);
@@ -29,6 +32,10 @@ export function NewsPage() {
   return <main className="page-shell"><header className="page-heading"><div><p className="eyebrow">Comunidad</p><h1>Noticias</h1><p>Novedades y comunicados de la institución.</p></div>
     {manager ? <div className="institutional-toolbar"><Button variant="secondary" onClick={() => { setManage(!manage); setPage(1); }}>{manage ? 'Ver muro publicado' : 'Gestionar publicaciones'}</Button><Button onClick={() => setEditing('new')}>Nueva noticia</Button></div> : null}</header>
     {editing && manager ? <NewsEditor key={typeof editing === 'string' ? 'new' : editing.id} post={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await client.invalidateQueries({ queryKey: ['institutional-news'] }); }} /> : null}
+    {deleting && admin ? <NewsDeleteDialog post={deleting} onClose={() => setDeleting(null)} onDeleted={async () => {
+      setDeleting(null); if (news.data?.data.length === 1 && page > 1) setPage(page - 1);
+      await client.invalidateQueries({ queryKey: ['institutional-news'] });
+    }} /> : null}
     {news.isPending ? <p role="status">Cargando noticias…</p> : null}
     {news.isError ? <div className="error-banner" role="alert">No se pudieron cargar las noticias. <Button onClick={() => void news.refetch()} variant="secondary">Reintentar</Button></div> : null}
     {news.data?.data.length === 0 ? <p className="operation-empty">{manage ? 'No hay publicaciones registradas.' : 'Aún no hay noticias publicadas.'}</p> : null}
@@ -39,7 +46,7 @@ export function NewsPage() {
         <div><h2>{post.titulo}</h2><div className="institutional-text">{post.contenido}</div></div>
         {post.imagenDocumentoId ? <NewsImage postId={post.id} imageId={post.imagenDocumentoId} title={post.titulo} /> : null}
       </div>
-      <footer>{post.documentos.map((file) => <Button key={file.id} variant="secondary" disabled={download.isPending} onClick={() => download.mutate(file.id)}>{file.nombreOriginal}</Button>)}{manager && manage ? <Button variant="secondary" onClick={() => setEditing(post)}>Editar publicación</Button> : null}</footer>
+      <footer>{post.documentos.map((file) => <Button key={file.id} variant="secondary" disabled={download.isPending} onClick={() => download.mutate(file.id)}>{file.titulo || file.nombreOriginal}</Button>)}{manager ? <Button variant="secondary" onClick={() => setEditing(post)}>Editar publicación</Button> : null}{admin ? <Button variant="destructive" onClick={() => setDeleting(post)}>Eliminar publicación</Button> : null}</footer>
     </article>)}</section>
     <div className="institutional-pagination"><Button variant="secondary" disabled={page === 1 || news.isFetching} onClick={() => setPage(page - 1)}>Anterior</Button><span>Página {page} de {Math.max(1, news.data?.pagination.totalPages ?? 1)}</span><Button variant="secondary" disabled={!news.data || page >= news.data.pagination.totalPages || news.isFetching} onClick={() => setPage(page + 1)}>Siguiente</Button></div>
   </main>;
@@ -61,7 +68,7 @@ function NewsEditor({ post, onClose, onSaved }: { post: NewsPost | undefined; on
     const imagenDocumentoId = image ? uploadedImage.current!.id : imageRemoved ? null : post?.imagenDocumentoId;
     return saveNews({ ...values, ...(imagenDocumentoId !== undefined ? { imagenDocumentoId } : {}) }, post?.id);
   }, onSuccess: onSaved });
-  return <section className="detail-panel"><h2>{post ? 'Editar noticia' : 'Nueva noticia'}</h2><form className="institutional-form" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
+  return <NewsDialog title={post ? 'Editar noticia' : 'Nueva noticia'} busy={mutation.isPending} onClose={onClose}><form className="institutional-form" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
     <FormField label="Título" htmlFor="news-title" error={form.formState.errors.titulo?.message}><Input id="news-title" {...form.register('titulo')} /></FormField>
     <FormField label="Contenido" htmlFor="news-content" error={form.formState.errors.contenido?.message}><textarea id="news-content" className="form-textarea" {...form.register('contenido')} /></FormField>
     <FormField label="Imagen de la noticia (opcional)" htmlFor="news-image-file" error={imageError}>
@@ -79,10 +86,20 @@ function NewsEditor({ post, onClose, onSaved }: { post: NewsPost | undefined; on
     </FormField>
     <FormField label="Estado" htmlFor="news-state"><select id="news-state" className="form-select" {...form.register('estado')}><option value="borrador">Borrador</option><option value="publicada">Publicada</option><option value="retirada">Retirada</option></select></FormField>
     <label className="institutional-file"><input type="checkbox" {...form.register('fijada')} /> Destacar al inicio del muro</label>
-    <fieldset disabled={files.isPending || files.isError || mutation.isPending}><legend>Adjuntar documentos institucionales</legend>{files.data?.map((file) => <label className="institutional-file" key={file.id}><input type="checkbox" value={file.id} {...form.register('documentoIds')} /> {file.nombreOriginal}</label>)}{files.data?.length === 0 ? <p>Publique documentos institucionales para adjuntarlos aquí.</p> : null}</fieldset>
+    <fieldset disabled={files.isPending || files.isError || mutation.isPending}><legend>Adjuntar documentos institucionales</legend>{files.data?.map((file) => <label className="institutional-file" key={file.id}><input type="checkbox" value={file.id} {...form.register('documentoIds')} /> {file.titulo || file.nombreOriginal}</label>)}{files.data?.length === 0 ? <p>Publique documentos institucionales para adjuntarlos aquí.</p> : null}</fieldset>
     {files.isError ? <div className="error-banner" role="alert">No se pudieron cargar los documentos. <Button type="button" variant="secondary" onClick={() => void files.refetch()}>Reintentar</Button></div> : null}
     {form.formState.errors.documentoIds ? <p role="alert">{form.formState.errors.documentoIds.message}</p> : null}
     {mutation.error ? <div className="error-banner" role="alert">{getApiErrorMessage(mutation.error, 'No se pudo guardar la noticia.')}</div> : null}
     <div className="button-row"><Button type="submit" disabled={mutation.isPending || files.isError || files.isPending}>{mutation.isPending ? 'Guardando…' : 'Guardar noticia'}</Button><Button type="button" variant="secondary" disabled={mutation.isPending} onClick={onClose}>Cancelar</Button></div>
-  </form></section>;
+  </form></NewsDialog>;
+}
+function NewsDeleteDialog({ post, onClose, onDeleted }: { post: NewsPost; onClose: () => void; onDeleted: () => Promise<void> }) {
+  const mutation = useMutation({ mutationFn: () => deleteNews(post.id), onSuccess: onDeleted });
+  return <NewsDialog title="Eliminar publicación" busy={mutation.isPending} onClose={onClose}>
+    <p>¿Eliminar «{post.titulo}»?</p>
+    <p>La noticia se eliminará permanentemente. Los archivos de la biblioteca se conservarán.</p>
+    {mutation.error ? <div role="alert" className="error-banner">{getApiErrorMessage(mutation.error, 'No se pudo eliminar la publicación. Inténtelo nuevamente.')}</div> : null}
+    <div className="button-row"><Button variant="secondary" disabled={mutation.isPending} onClick={onClose}>Cancelar</Button>
+      <Button variant="destructive" disabled={mutation.isPending} onClick={() => mutation.mutate()}>{mutation.isPending ? 'Eliminando…' : 'Sí, eliminar'}</Button></div>
+  </NewsDialog>;
 }

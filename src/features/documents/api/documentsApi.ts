@@ -1,7 +1,7 @@
 import { api } from '../../../api/client';
 import type { PaginatedResponse } from '../../../api/types';
 
-export type AcademicDocument = { id: string; nombreOriginal: string; tipo: string; ambito: string; mimeType: string; tamanoBytes: number; createdAt: string };
+export type AcademicDocument = { id: string; nombreOriginal: string; titulo?: string | null; tipo: string; ambito: string; mimeType: string; tamanoBytes: number; createdAt: string };
 
 export async function listDocuments() {
   return (await api.get<PaginatedResponse<AcademicDocument>>('/documentos')).data;

@@ -1,4 +1,11 @@
 .institutional-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
+.news-dialog { margin: auto; padding: 0; width: min(760px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--ink); overflow: auto; }
+.news-dialog::backdrop { background: rgb(0 0 0 / 55%); }
+.news-dialog-header { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 24px; border-bottom: 1px solid var(--line); background: var(--surface); }
+.news-dialog-header h2 { margin: 0; font-size: 20px; }
+.news-dialog-body { padding: 24px; overflow-wrap: anywhere; }
+.news-dialog .button-row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; }
+@media (max-width: 600px) { .news-dialog-header, .news-dialog-body { padding: 16px; } }
 .news-content { margin-top: 12px; min-width: 0; }
 .news-content-with-image { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 32%); gap: 24px; align-items: start; }
 .news-content > div { min-width: 0; }

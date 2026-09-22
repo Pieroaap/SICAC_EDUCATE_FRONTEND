@@ -9,11 +9,12 @@ export async function getLibrary(page = 1) {
 }
 
 // Publicación explícita desde la biblioteca. El flujo interno de documentos no cambia.
-export async function publishLibraryFile(file: File, confirmed: boolean) {
+export async function publishLibraryFile(file: File, confirmed: boolean, titulo: string) {
   if (!confirmed) throw new Error('Confirme que desea compartir este archivo con alumnos y profesores.');
   const body = new FormData();
   body.append('archivo', file); body.append('tipo', 'OTRO'); body.append('ambito', 'INSTITUCION');
   body.append('publicadoBiblioteca', 'true');
+  body.append('titulo', titulo.trim());
   return (await api.post('/documentos', body)).data;
 }
 
