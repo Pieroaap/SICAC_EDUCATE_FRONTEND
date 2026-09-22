@@ -1,4 +1,19 @@
 .institutional-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
+.news-content { margin-top: 12px; min-width: 0; }
+.news-content-with-image { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 32%); gap: 24px; align-items: start; }
+.news-content > div { min-width: 0; }
+.news-content h2 { overflow-wrap: anywhere; }
+.news-image { min-width: 0; overflow-wrap: anywhere; }
+.news-image img { display: block; width: 100%; height: auto; object-fit: contain; border-radius: 12px; }
+.news-image-preview { max-width: 320px; margin: 12px 0; }
+.institutional-file-input { width: 100%; min-width: 0; color: var(--ink-secondary); }
+.institutional-file-input::file-selector-button { min-height: 44px; margin-right: 12px; padding: 10px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+.institutional-file-input::file-selector-button:hover { background: var(--surface-soft, #f5f3f1); }
+.institutional-file-input:focus-visible { outline: 2px solid #C41E3A; outline-offset: 4px; border-radius: 8px; }
+.institutional-file-input:disabled { opacity: .6; cursor: wait; }
+.file-help { color: var(--ink-secondary); font-size: 13px; margin-top: 8px; }
+.file-selection { overflow-wrap: anywhere; font-size: 14px; }
+@media (max-width: 700px) { .news-content-with-image { grid-template-columns: minmax(0, 1fr); } }
 .institutional-toolbar, .institutional-pagination, .institutional-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .institutional-list { display: grid; gap: 20px; }
 .institutional-post, .privacy-card { border: 1px solid var(--line); border-radius: 16px; padding: 24px; background: var(--surface); }

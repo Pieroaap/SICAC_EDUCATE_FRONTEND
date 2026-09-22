@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { getApiErrorMessage } from '../../../api/client';
@@ -10,7 +10,8 @@ import { Input } from '../../../components/ui/Input';
 import { useAuth } from '../../auth/AuthProvider';
 import { downloadDocument } from '../../documents/api/documentsApi';
 import { getLibraryOptions } from '../api/libraryApi';
-import { getNews, saveNews, type NewsPost } from '../api/institutionalApi';
+import { getNews, saveNews, uploadNewsImage, type NewsPost } from '../api/institutionalApi';
+import { NewsImage } from './NewsImage';
 import '../institutional.css';
 
 const schema = z.object({ titulo: z.string().trim().min(1, 'Escriba un título.').max(180), contenido: z.string().trim().min(1, 'Escriba el contenido.').max(30000),
@@ -34,19 +35,48 @@ export function NewsPage() {
     {download.error ? <div className="error-banner" role="alert">{getApiErrorMessage(download.error, 'No se pudo descargar el archivo.')}</div> : null}
     <section className="institutional-list">{news.data?.data.map((post) => <article className="institutional-post" key={post.id}>
       <header>{post.fijada ? <strong>Destacada</strong> : null}<time>{new Date(post.publicadaAt ?? post.createdAt).toLocaleDateString('es-PE')}</time>{manage ? <span>{post.estado}</span> : null}</header>
-      <h2>{post.titulo}</h2><div className="institutional-text">{post.contenido}</div>
+      <div className={post.imagenDocumentoId ? 'news-content news-content-with-image' : 'news-content'}>
+        <div><h2>{post.titulo}</h2><div className="institutional-text">{post.contenido}</div></div>
+        {post.imagenDocumentoId ? <NewsImage postId={post.id} imageId={post.imagenDocumentoId} title={post.titulo} /> : null}
+      </div>
       <footer>{post.documentos.map((file) => <Button key={file.id} variant="secondary" disabled={download.isPending} onClick={() => download.mutate(file.id)}>{file.nombreOriginal}</Button>)}{manager && manage ? <Button variant="secondary" onClick={() => setEditing(post)}>Editar publicación</Button> : null}</footer>
     </article>)}</section>
     <div className="institutional-pagination"><Button variant="secondary" disabled={page === 1 || news.isFetching} onClick={() => setPage(page - 1)}>Anterior</Button><span>Página {page} de {Math.max(1, news.data?.pagination.totalPages ?? 1)}</span><Button variant="secondary" disabled={!news.data || page >= news.data.pagination.totalPages || news.isFetching} onClick={() => setPage(page + 1)}>Siguiente</Button></div>
   </main>;
 }
 function NewsEditor({ post, onClose, onSaved }: { post: NewsPost | undefined; onClose: () => void; onSaved: () => Promise<void> }) {
+  const [image, setImage] = useState<File | null>(null);
+  const [imageRemoved, setImageRemoved] = useState(false);
+  const [imageError, setImageError] = useState('');
+  const [preview, setPreview] = useState('');
+  const imageInput = useRef<HTMLInputElement>(null);
+  const uploadedImage = useRef<{ file: File; id: string } | null>(null);
+  useEffect(() => {
+    return () => { if (preview) URL.revokeObjectURL(preview); };
+  }, [preview]);
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { titulo: post?.titulo ?? '', contenido: post?.contenido ?? '', estado: post?.estado ?? 'borrador', fijada: post?.fijada ?? false, documentoIds: post?.documentos.map((file) => file.id) ?? [] } });
   const files = useQuery({ queryKey: ['library-options'], queryFn: getLibraryOptions });
-  const mutation = useMutation({ mutationFn: (values: Values) => saveNews(values, post?.id), onSuccess: onSaved });
+  const mutation = useMutation({ mutationFn: async (values: Values) => {
+    if (image && uploadedImage.current?.file !== image) uploadedImage.current = { file: image, id: (await uploadNewsImage(image)).id };
+    const imagenDocumentoId = image ? uploadedImage.current!.id : imageRemoved ? null : post?.imagenDocumentoId;
+    return saveNews({ ...values, ...(imagenDocumentoId !== undefined ? { imagenDocumentoId } : {}) }, post?.id);
+  }, onSuccess: onSaved });
   return <section className="detail-panel"><h2>{post ? 'Editar noticia' : 'Nueva noticia'}</h2><form className="institutional-form" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
     <FormField label="Título" htmlFor="news-title" error={form.formState.errors.titulo?.message}><Input id="news-title" {...form.register('titulo')} /></FormField>
     <FormField label="Contenido" htmlFor="news-content" error={form.formState.errors.contenido?.message}><textarea id="news-content" className="form-textarea" {...form.register('contenido')} /></FormField>
+    <FormField label="Imagen de la noticia (opcional)" htmlFor="news-image-file" error={imageError}>
+      <input className="institutional-file-input" ref={imageInput} id="news-image-file" type="file" accept=".jpg,.jpeg,.png" disabled={mutation.isPending} onChange={(event) => {
+        const selected = event.target.files?.[0]; if (!selected) return;
+        if (!['image/jpeg', 'image/png'].includes(selected.type) || selected.size === 0 || selected.size > 5 * 1024 * 1024) {
+          setImageError('Seleccione una imagen JPG o PNG de entre 1 byte y 5 MiB.'); event.target.value = ''; return;
+        }
+        setImageError(''); setPreview(URL.createObjectURL(selected)); setImage(selected); setImageRemoved(false);
+      }} />
+      <p className="file-help">JPG o PNG · Máximo 5 MiB. La imagen se mostrará completa junto al texto.</p>
+      {image && preview ? <div className="news-image news-image-preview"><img src={preview} alt="Vista previa de la imagen seleccionada" /><p>{image.name}</p></div>
+        : !imageRemoved && post?.imagenDocumentoId ? <div className="news-image-preview"><NewsImage postId={post.id} imageId={post.imagenDocumentoId} title={post.titulo} /></div> : null}
+      {image || (!imageRemoved && post?.imagenDocumentoId) ? <Button type="button" variant="secondary" disabled={mutation.isPending} onClick={() => { setImage(null); setPreview(''); setImageRemoved(true); setImageError(''); if (imageInput.current) imageInput.current.value = ''; }}>Quitar imagen</Button> : null}
+    </FormField>
     <FormField label="Estado" htmlFor="news-state"><select id="news-state" className="form-select" {...form.register('estado')}><option value="borrador">Borrador</option><option value="publicada">Publicada</option><option value="retirada">Retirada</option></select></FormField>
     <label className="institutional-file"><input type="checkbox" {...form.register('fijada')} /> Destacar al inicio del muro</label>
     <fieldset disabled={files.isPending || files.isError || mutation.isPending}><legend>Adjuntar documentos institucionales</legend>{files.data?.map((file) => <label className="institutional-file" key={file.id}><input type="checkbox" value={file.id} {...form.register('documentoIds')} /> {file.nombreOriginal}</label>)}{files.data?.length === 0 ? <p>Publique documentos institucionales para adjuntarlos aquí.</p> : null}</fieldset>

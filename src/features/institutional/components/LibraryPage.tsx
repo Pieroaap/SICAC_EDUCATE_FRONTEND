@@ -51,10 +51,13 @@ function LibraryPublisher({ onPublished }: { onPublished: () => Promise<void> })
   return <section className="detail-panel"><h2>Publicar un documento institucional</h2><p>Comparte archivos para que alumnos y profesores puedan consultarlos y descargarlos.</p>
     {success ? <p role="status">Documento institucional publicado.</p> : null}
     <form className="institutional-form" onSubmit={form.handleSubmit((values) => {
-      if (!file || file.size === 0 || file.size > 10 * 1024 * 1024) { setFileError('Seleccione un archivo de entre 1 byte y 10 MiB.'); return; }
+      if (!file || file.size === 0 || file.size > 25 * 1024 * 1024) { setFileError('Seleccione un archivo de entre 1 byte y 25 MiB.'); return; }
       setFileError(''); upload.mutate(values);
     })}>
-      <FormField label="Archivo para compartir" htmlFor="library-file" error={fileError}><input ref={ref} id="library-file" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png" disabled={upload.isPending} onChange={(event) => { setSuccess(false); setFileError(''); setFile(event.target.files?.[0] ?? null); form.setValue('compartir', false); }} /></FormField>
+      <FormField label="Archivo para compartir" htmlFor="library-file" error={fileError}><input className="institutional-file-input" ref={ref} id="library-file" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png" disabled={upload.isPending} onChange={(event) => { setSuccess(false); setFileError(''); upload.reset(); setFile(event.target.files?.[0] ?? null); form.setValue('compartir', false); }} />
+        <p className="file-help">PDF, Word, Excel, PowerPoint, JPG o PNG · Máximo 25 MiB.</p>
+        {file ? <p role="status" className="file-selection">{file.name} · {(file.size / 1024).toLocaleString('es-PE', { maximumFractionDigits: 1 })} KiB</p> : null}
+      </FormField>
       <label className="privacy-check"><input type="checkbox" {...form.register('compartir')} /> Confirmo que este archivo puede ser consultado por alumnos y profesores en Documentos institucionales.</label>
       {form.formState.errors.compartir ? <p role="alert">{form.formState.errors.compartir.message}</p> : null}
       {upload.error ? <div className="error-banner" role="alert">{getApiErrorMessage(upload.error, 'No se pudo publicar el archivo.')}</div> : null}
