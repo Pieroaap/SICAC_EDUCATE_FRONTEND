@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   getStudents: vi.fn(),
 }));
+vi.mock('../../auth/AuthProvider', () => ({ useAuth: () => ({ profile: { roles: [{ codigo: 'ADMINISTRADOR_SISTEMA' }] } }) }));
 
 vi.mock('../api/profilesApi', () => ({
   getStudents: mocks.getStudents,

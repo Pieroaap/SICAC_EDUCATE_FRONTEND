@@ -3,7 +3,6 @@ import { ChevronLeft, ChevronRight, LoaderCircle, Search, SquarePen, UsersRound 
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import type { RoleCode } from '../../../api/types';
-import { StatusBadge } from '../../../components/StatusBadge';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { useDebouncedValue } from '../../../lib/useDebouncedValue';
@@ -179,7 +178,6 @@ export function PeopleListPage() {
                   <th>Documento</th>
                   <th>Roles</th>
                   <th>Acceso</th>
-                  <th>Estado</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
@@ -206,7 +204,6 @@ export function PeopleListPage() {
                       </div>
                     </td>
                     <td>{person.tieneAcceso ? 'Habilitado' : 'Sin acceso'}</td>
-                    <td><StatusBadge active={person.estado === 'activo'} /></td>
                     <td className="table-actions">
                       <Button asChild className="table-action-button" variant="ghost">
                         <Link to={`/personas/${person.id}`}>

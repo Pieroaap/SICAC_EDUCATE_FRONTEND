@@ -7,10 +7,13 @@ import { Button } from '../../../components/ui/Button';
 import { useDebouncedValue } from '../../../lib/useDebouncedValue';
 import { getTeachers } from '../api/profilesApi';
 import { DirectoryPagination, DirectoryToolbar } from './DirectoryControls';
+import { DirectoryAccessButton } from './DirectoryAccessButton';
+import { useDirectoryAccess } from './useDirectoryAccess';
 
 const PAGE_SIZE = 20;
 
 export function TeachersListPage() {
+  const access = useDirectoryAccess();
   const [searchParams, setSearchParams] = useSearchParams();
   const search = searchParams.get('search') ?? '';
   const statusParam = searchParams.get('estado');
@@ -75,6 +78,8 @@ export function TeachersListPage() {
         </Button>
       </header>
 
+      {access.feedback ? <div className={access.feedback.type === 'error' ? 'error-banner' : 'success-banner'} role={access.feedback.type === 'error' ? 'alert' : 'status'}>{access.feedback.message}</div> : null}
+
       <DirectoryToolbar
         isSearching={isSearching}
         onSearchChange={setSearchDraft}
@@ -134,6 +139,11 @@ export function TeachersListPage() {
                     <td>{teacher.tieneAcceso ? 'Habilitado' : 'Sin acceso'}</td>
                     <td><StatusBadge active={teacher.estado === 'activo'} /></td>
                     <td className="table-actions">
+                      {access.canGiveAccess && !teacher.tieneAcceso ? <DirectoryAccessButton
+                        disabled={access.mutation.isPending || teachers.isPlaceholderData}
+                        pending={access.mutation.isPending && access.mutation.variables?.personId === teacher.id}
+                        onClick={() => access.mutation.mutate({ personId: teacher.id, name: `${teacher.apellidoPaterno} ${teacher.apellidoMaterno ?? ''} ${teacher.nombres}`.replace(/\s+/g, ' ').trim(), initialRole: 'PROFESOR' })}
+                      /> : null}
                       <Button asChild className="table-action-button" variant="ghost">
                         <Link to={`/personas/${teacher.id}`}>
                           <SquarePen size={15} />
