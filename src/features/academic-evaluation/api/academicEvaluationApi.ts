@@ -27,7 +27,7 @@ export async function saveEvaluationComponents(
   components: Array<{
     id?: string; nombre: string; porcentaje: number; orden: number;
     tipo: 'tarea' | 'practica' | 'examen' | 'proyecto' | 'otro' | null;
-    fechaProgramada: string | null; fechaLimite: string | null;
+    fechaProgramada: string | null; fechaLimite?: string | null;
     estado: 'programada' | 'en_curso' | 'cerrada';
   }>,
 ) {

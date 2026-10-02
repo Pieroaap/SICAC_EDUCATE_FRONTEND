@@ -12,6 +12,9 @@ import {
 } from './personForm';
 
 describe('personForm helpers', () => {
+  it('conserva los ceros iniciales del DNI al preparar los datos', () => {
+    expect(toPersonPayload({ ...emptyPersonValues, numeroDocumento: '01234567' }).numeroDocumento).toBe('01234567');
+  });
   it('drops empty optional values before sending them to the API', () => {
     expect(toPersonPayload(emptyPersonValues)).toEqual({
       tipoDocumento: 'dni',

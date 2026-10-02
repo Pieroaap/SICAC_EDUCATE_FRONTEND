@@ -34,7 +34,6 @@ export function GradebookPage() {
     mutationFn: (values: ComponentsValues) => saveEvaluationComponents(courseId, values.components.map((item) => ({
       ...item,
       fechaProgramada: item.fechaProgramada ? new Date(item.fechaProgramada).toISOString() : null,
-      fechaLimite: item.fechaLimite ? new Date(item.fechaLimite).toISOString() : null,
     }))),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['evaluation', 'gradebook', courseId] });

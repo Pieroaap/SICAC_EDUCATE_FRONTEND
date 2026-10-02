@@ -1944,9 +1944,10 @@ button:disabled { cursor: default; }
 .evaluation-state.is-publicada { color: #167044; background: rgba(22, 112, 68, 0.1); }
 .evaluation-heading__actions { display: flex; align-items: center; gap: 0.65rem; }
 .evaluation-components-dialog {
-  width: min(92vw, 680px);
-  max-width: 680px;
-  max-height: min(84vh, 760px);
+  width: min(96vw, 1120px);
+  max-width: 1120px;
+  max-height: 92dvh;
+  margin: auto;
   overflow: auto;
   padding: 0;
   border: 0;
@@ -1985,8 +1986,12 @@ button:disabled { cursor: default; }
   grid-template-columns: minmax(220px, 1fr) 130px 42px;
   gap: 0.55rem;
 }
-.evaluation-component-row { grid-template-columns: minmax(180px, 2fr) 90px 120px 170px 170px 120px 42px; }
-.evaluation-component-field { display: grid; gap: 0.25rem; }
+.evaluation-component-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; align-items: start; }
+.evaluation-component-row > :first-child { grid-column: span 2; }
+.evaluation-component-row > * { min-width: 0; }
+.evaluation-component-row input, .evaluation-component-row select { width: 100%; min-width: 0; }
+.evaluation-component-row small { color: var(--ink-muted); }
+.evaluation-component-field { display: grid; gap: 0.5rem; padding: 1rem; border: 1px solid var(--line); border-radius: 12px; }
 .evaluation-component-row button { width: 42px; padding: 0; }
 .evaluation-components__footer { display: flex; justify-content: space-between; gap: 0.75rem; }
 .evaluation-components__footer > div { display: flex; justify-content: flex-end; gap: 0.55rem; }
@@ -2041,7 +2046,8 @@ button:disabled { cursor: default; }
   .evaluation-state { grid-column: 1; }
   .evaluation-course-main > svg { grid-column: 2; grid-row: 1 / span 3; }
   .evaluation-heading__actions { width: 100%; align-items: stretch; flex-direction: column-reverse; }
-  .evaluation-component-row { grid-template-columns: 1fr 100px 42px; }
+  .evaluation-component-row { grid-template-columns: 1fr; }
+  .evaluation-component-row > :first-child { grid-column: auto; }
   .evaluation-components__footer, .grades-form > header { align-items: stretch; flex-direction: column; }
   .evaluation-components__footer > div { flex-direction: column-reverse; }
   .publish-act-panel { grid-template-columns: 1fr; }

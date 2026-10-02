@@ -2,10 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { classifyGrade, componentsSchema, gradeToLetter, gradeValueSchema, weightedAverage } from './academicEvaluationForms';
 
 describe('formularios de evaluación', () => {
-  it('exige pesos que sumen 100', () => {
+  it('permite guardar una planificación parcial sin superar 100', () => {
     expect(componentsSchema.safeParse({
       components: [{ nombre: 'Parcial', porcentaje: 90, orden: 1 }],
-    }).success).toBe(false);
+    }).success).toBe(true);
+    expect(componentsSchema.safeParse({ components: [
+      { nombre: 'Parcial', porcentaje: 60, orden: 1 },
+      { nombre: 'Final', porcentaje: 60, orden: 2 },
+    ] }).success).toBe(false);
     expect(componentsSchema.safeParse({
       components: [
         { nombre: 'Parcial', porcentaje: 40, orden: 1 },

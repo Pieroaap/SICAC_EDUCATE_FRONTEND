@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import type { EvaluationComponent } from '../../../api/types';
 import { Button } from '../../../components/ui/Button';
+import { FormField } from '../../../components/FormField';
 import { Input } from '../../../components/ui/Input';
 import {
   componentsSchema,
@@ -30,7 +31,7 @@ export function EvaluationComponentsForm({
 }: Props) {
   const form = useForm<ComponentsInput, unknown, ComponentsValues>({
     resolver: zodResolver(componentsSchema),
-    defaultValues: { components: [{ nombre: '', porcentaje: 100, orden: 1, tipo: null, fechaProgramada: null, fechaLimite: null, estado: 'programada' }] },
+    defaultValues: { components: [{ nombre: '', porcentaje: 100, orden: 1, tipo: null, fechaProgramada: null, estado: 'programada' }] },
   });
   const fields = useFieldArray({ control: form.control, name: 'components' });
   const watched = useWatch({ control: form.control, name: 'components' });
@@ -46,7 +47,6 @@ export function EvaluationComponentsForm({
           orden: item.orden,
           tipo: item.tipo,
           fechaProgramada: item.fechaProgramada?.slice(0, 16) ?? null,
-          fechaLimite: item.fechaLimite?.slice(0, 16) ?? null,
           estado: item.estado,
         })),
       });
@@ -58,7 +58,7 @@ export function EvaluationComponentsForm({
       <header>
         <div>
           <h2>Componentes de evaluación</h2>
-          <p>El profesor puede ajustar los pesos mientras el acta esté abierta.</p>
+          <p>Puedes guardar evaluaciones por etapas. Solo se exige completar el 100 % al cerrar el acta.</p>
         </div>
         <strong className={Math.abs(total - 100) < 0.001 ? 'is-complete' : 'is-pending'}>
           {total.toFixed(2)}%
@@ -67,33 +67,32 @@ export function EvaluationComponentsForm({
       {fields.fields.map((field, index) => (
         <div className="evaluation-component-field" key={field.id}>
           <div className="evaluation-component-row">
-            <Input
+            <FormField label="Nombre de la evaluación" htmlFor={`component-name-${index}`}><Input id={`component-name-${index}`}
               aria-label={`Nombre de evaluación ${index + 1}`}
-              disabled={disabled}
+              disabled={disabled || pending}
               {...form.register(`components.${index}.nombre`)}
-            />
-            <select aria-label={`Tipo de evaluación ${index + 1}`} className="form-select" disabled={disabled} {...form.register(`components.${index}.tipo`, { setValueAs: (value) => value || null })}>
+            /></FormField>
+            <FormField label="Tipo" htmlFor={`component-type-${index}`}><select id={`component-type-${index}`} aria-label={`Tipo de evaluación ${index + 1}`} className="form-select" disabled={disabled || pending} {...form.register(`components.${index}.tipo`, { setValueAs: (value) => value || null })}>
               <option value="">Otro</option><option value="tarea">Tarea</option><option value="practica">Práctica</option><option value="examen">Examen</option><option value="proyecto">Proyecto</option>
-            </select>
-            <Input aria-label={`Fecha programada ${index + 1}`} disabled={disabled} type="datetime-local" {...form.register(`components.${index}.fechaProgramada`, { setValueAs: (value) => value || null })} />
-            <Input aria-label={`Fecha límite ${index + 1}`} disabled={disabled} type="datetime-local" {...form.register(`components.${index}.fechaLimite`, { setValueAs: (value) => value || null })} />
-            <select aria-label={`Estado de evaluación ${index + 1}`} className="form-select" disabled={disabled} {...form.register(`components.${index}.estado`)}>
+            </select></FormField>
+            <FormField label="Fecha de la evaluación" htmlFor={`component-date-${index}`}><Input id={`component-date-${index}`} disabled={disabled || pending} type="datetime-local" {...form.register(`components.${index}.fechaProgramada`, { setValueAs: (value) => value || null })} /><small>Día y hora en que se realiza la evaluación.</small></FormField>
+            <FormField label="Estado" htmlFor={`component-state-${index}`}><select id={`component-state-${index}`} aria-label={`Estado de evaluación ${index + 1}`} className="form-select" disabled={disabled || pending} {...form.register(`components.${index}.estado`)}>
               <option value="programada">Programada</option><option value="en_curso">En curso</option><option value="cerrada">Cerrada</option>
-            </select>
-            <Input
+            </select></FormField>
+            <FormField label="Peso en la nota final (%)" htmlFor={`component-weight-${index}`}><Input id={`component-weight-${index}`}
               aria-label={`Peso de evaluación ${index + 1}`}
-              disabled={disabled}
+              disabled={disabled || pending}
               max={100}
               min={0.01}
               step="0.01"
               type="number"
               {...form.register(`components.${index}.porcentaje`, { valueAsNumber: true })}
-            />
+            /></FormField>
             <input type="hidden" {...form.register(`components.${index}.id`)} />
             <input type="hidden" value={index + 1} {...form.register(`components.${index}.orden`, { valueAsNumber: true })} />
             <Button
               aria-label={`Eliminar evaluación ${index + 1}`}
-              disabled={disabled || fields.fields.length === 1}
+              disabled={disabled || pending || fields.fields.length === 1}
               onClick={() => fields.remove(index)}
               type="button"
               variant="ghost"
@@ -125,7 +124,6 @@ export function EvaluationComponentsForm({
               orden: fields.fields.length + 1,
               tipo: null,
               fechaProgramada: null,
-              fechaLimite: null,
               estado: 'programada',
             })}
             type="button"

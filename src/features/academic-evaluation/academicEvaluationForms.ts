@@ -12,21 +12,18 @@ export const componentSchema = z.object({
   orden: z.number().int().positive(),
   tipo: z.enum(['tarea', 'practica', 'examen', 'proyecto', 'otro']).nullable().default(null),
   fechaProgramada: z.string().nullable().default(null),
-  fechaLimite: z.string().nullable().default(null),
   estado: z.enum(['programada', 'en_curso', 'cerrada']).default('programada'),
-}).refine((value) => !value.fechaProgramada || !value.fechaLimite || value.fechaLimite >= value.fechaProgramada, {
-  message: 'La fecha límite debe ser posterior a la programada', path: ['fechaLimite'],
 });
 
 export const componentsSchema = z.object({
   components: z.array(componentSchema).min(1, 'Agrega al menos una evaluación'),
 }).superRefine((value, context) => {
   const total = value.components.reduce((sum, item) => sum + item.porcentaje, 0);
-  if (Math.abs(total - 100) > 0.001) {
+  if (total > 100.001) {
     context.addIssue({
       code: 'custom',
       path: ['components'],
-      message: 'Los pesos deben sumar exactamente 100%',
+      message: 'Los pesos no pueden superar el 100%',
     });
   }
 });
